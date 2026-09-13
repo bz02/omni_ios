@@ -8,6 +8,7 @@ import '../../config/app_config.dart';
 import '../../core/billing/entitlements.dart';
 import '../../core/billing/products.dart';
 import '../../core/billing/purchase_service.dart';
+import '../../core/billing/stripe_checkout_service.dart';
 import '../../core/theme/modern_theme.dart';
 import '../../screens/chat_screen.dart';
 import '../../state/profile_controller.dart';
@@ -90,7 +91,7 @@ class AccountScreen extends StatelessWidget {
             _Tile(
               icon: Icons.restore,
               label: 'Restore purchases',
-              subtitle: 'If you have subscribed before on this Apple ID',
+              subtitle: 'If you have subscribed before on this device',
               onTap: () async {
                 final result =
                     await context.read<PurchaseService>().restore();
@@ -106,6 +107,16 @@ class AccountScreen extends StatelessWidget {
                 );
               },
             ),
+            // Checkout is anonymous, so a subscription bought on another
+            // device can only be claimed with the code from its receipt.
+            // Without this entry that purchase is stranded.
+            if (context.read<PurchaseService>() is StripeCheckoutService)
+              _Tile(
+                icon: Icons.vpn_key_outlined,
+                label: 'I paid on another device',
+                subtitle: 'Enter the restore code from your receipt',
+                onTap: () => _redeemCode(context),
+              ),
           ]),
           const SizedBox(height: 16),
           _Section(title: 'About', children: [
@@ -132,6 +143,60 @@ class AccountScreen extends StatelessWidget {
             style: ModernTheme.caption.copyWith(fontSize: 12),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _redeemCode(BuildContext context) async {
+    final service = context.read<PurchaseService>();
+    if (service is! StripeCheckoutService) return;
+
+    final controller = TextEditingController();
+    final code = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Restore code'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'It is on the receipt Stripe emailed you, and in the address bar '
+              'of the page you landed on after paying.',
+              style: ModernTheme.caption.copyWith(fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(hintText: 'cs_...'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(controller.text.trim()),
+            child: const Text('Restore'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+
+    if (code == null || code.isEmpty || !context.mounted) return;
+
+    final result = await service.redeemRestoreCode(code);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result.isSuccess
+            ? 'Restored.'
+            : result.message ?? 'That code did not work.'),
       ),
     );
   }

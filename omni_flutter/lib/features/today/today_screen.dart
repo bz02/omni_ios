@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/analytics/analytics.dart';
 import '../../core/engine/daily_fortune.dart';
 import '../../core/theme/modern_theme.dart';
 import '../../state/profile_controller.dart';
@@ -397,12 +398,20 @@ class _EmptyState extends StatelessWidget {
                 const SizedBox(height: 28),
                 ElevatedButton(
                   onPressed: () async {
+                    context.read<Analytics>().onboardingStarted();
                     final birth = await Navigator.of(context).push(
                       MaterialPageRoute<dynamic>(
                           builder: (_) => const BirthFormScreen()),
                     );
                     if (birth != null && context.mounted) {
                       await context.read<ProfileController>().setBirth(birth);
+                      if (context.mounted) {
+                        // The biggest drop-off in the funnel ends here.
+                        context.read<Analytics>().onboardingCompleted(
+                              hasBirthTime: birth.timeIsKnown,
+                              hasBirthPlace: birth.placeIsKnown,
+                            );
+                      }
                     }
                   },
                   child: const Text('Start'),

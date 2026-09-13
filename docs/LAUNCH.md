@@ -1,148 +1,143 @@
 # 上线与收款手册
 
-> 代码这边能做的都做了。这份文档列的是**只有你能做的事**——它们都需要你的账号、
-> 你的密钥、你的银行卡。按顺序做完就能收钱。
+> 代码这边能做的都做完了，包括服务端。
+> 这份文档列的是**只有你能做的事**——它们都需要你的账号、你的密钥、你的银行卡。
 
 ---
 
 ## 0. 立刻做：轮换泄露的 API Key ⚠️
 
 仓库历史里有一个明文的 Gemini API Key（`8989e94` 提交，`lib/config/app_config.dart`）。
-代码已经改成从 `--dart-define` 读取，但**历史提交里的那个 key 仍然有效，必须作废**：
+代码早已不再从那里读 key，但**历史提交里的那个仍然有效，必须作废**：
 
-1. 打开 Google AI Studio → API Keys → 删除那个 key
-2. 新建一个 key，**不要**再写进任何文件
-3. 如果仓库是 public，假设 key 已被爬走（GitHub 上有专门扫 key 的机器人）
-
-顺带明白一件事：**客户端里的 key 永远是可以被扒出来的**。`--dart-define` 只是把它
-从 git 里挪走，任何人下载 ipa 都能反编译拿到。真正的解法是第 2 步的服务端代理。
+1. Google AI Studio → API Keys → 删除那个 key
+2. 新建一个，**只**交给 Cloudflare（`wrangler secret put GEMINI_API_KEY`），不要再进任何文件
+3. 如果仓库是 public，假设它已被爬走（GitHub 上有专门扫 key 的机器人）
 
 ---
 
-## 1. 现在就能跑起来
+## 1. 现在就能跑
 
 ```bash
 cd omni_flutter
 flutter pub get
+flutter run        # 不带任何 key：命盘、运势、塔罗、易经、合盘全部本地计算，离线可用
+flutter test       # 143 个测试
 
-# 不带 key 也能跑：命盘、每日运势、塔罗、易经、合盘全部本地计算，离线可用
-flutter run
-
-# 带 key 跑，多出 AI 对话
-flutter run --dart-define=GEMINI_API_KEY=你的新key
-
-flutter test          # 121 个测试
+cd ../server
+node --test        # 31 个测试，不连网
 ```
 
-**重要设计**：占卜的核心计算全在设备本地，不依赖任何服务。就算你的 AI 额度用光、
-服务挂了，App 依然能用。AI 只负责把算出来的结果写成人话。
+**核心设计**：占卜计算全在设备本地。服务挂了、额度用光了，App 照样能用。
+AI 只负责把算出来的东西写成人话。
 
 ---
 
-## 2. 服务端代理（提审前必须做）
+## 2. 服务端（已经写好了）
 
-需要它的两个理由，缺一不可：
+`server/` 是一个 Cloudflare Worker。它一个人干三件事，而这三件事**每一件都是上线阻塞项**：
 
-1. **保护 key**：客户端 key 会被扒走，别人用你的额度
-2. **验证收据**：`in_app_purchase` 的购买事件在越狱机上可以伪造。现在的
-   `StorePurchaseService` 是本地记账的，能被绕过
+| 阻塞项 | 为什么必须有服务端 |
+|---|---|
+| 模型 key | 编进客户端的 key，任何人下载 App 都能反编译扒出来 |
+| 付费凭证 | 记在手机上的"已付费"就是 shared_preferences 里的一个数，越狱机随便改 |
+| Web 收款 | Web 没有 `in_app_purchase`，而 Stripe Checkout 必须用 secret key 在服务端开单 |
 
-最省事的方案是 **RevenueCat**（收据验证 + 订阅状态托管，月流水 $2.5k 以内免费）：
+**关键安全设计**：客户端只发一个 **product id**。价格、模式、等级、币数全部在服务端查表。
+被改过的客户端能选买哪个商品，别的什么都改不了。
 
-- 注册 → 建 App → 填 App Store Connect 的 In-App Purchase Key
-- 把 `purchase_service.dart` 里的 `StorePurchaseService` 换成 `purchases_flutter`
-  的实现（抽象层已经留好了，`PurchaseService` 那四个方法照着实现即可）
-- 好处：不用自己写收据校验、不用管订阅续期/退款/宽限期这些坑
+部署：
 
-AI 代理用 **Cloudflare Worker** 就够（免费额度每天 10 万次请求）：
+```bash
+cd server
+npm install
+npx wrangler kv:namespace create ENTITLEMENTS
+npx wrangler kv:namespace create RATE
+# 把两个 id 填进 wrangler.toml
 
-```js
-export default {
-  async fetch(request, env) {
-    // 1. 校验调用者身份（RevenueCat webhook 同步过来的订阅状态）
-    // 2. 按用户 ID 限流，防止一个人刷爆额度
-    // 3. 转发到 Gemini，key 只存在 env.GEMINI_API_KEY
-  }
-}
+npx wrangler secret put STRIPE_SECRET_KEY
+npx wrangler secret put STRIPE_WEBHOOK_SECRET
+npx wrangler secret put GEMINI_API_KEY
+
+npx wrangler deploy
 ```
 
-然后 `flutter build --dart-define=OMNI_API_BASE_URL=https://你的域名`，
-App 就会走代理而不是直连模型。
+Stripe 后台：给 `server/catalogue.mjs` 里的 6 个 product id 各建一个 price，
+把 price id 填进 `wrangler.toml`；再建一个 webhook 指向 `/v1/stripe-webhook`，
+订阅 `checkout.session.completed`、`customer.subscription.updated`、
+`customer.subscription.deleted` 三个事件。
+
+**Webhook 必须配**。不配的话订阅取消了 App 也不会锁——这正是测试里
+`a subscription redeemed by code can still be revoked later` 那条守的东西。
 
 ---
 
-## 3. App Store Connect 配置
+## 3. Web 版上线（最快见到现金流）
 
-**商品 ID 必须和 `lib/core/billing/products.dart` 里完全一致**，写错了商店会返回
-"product not found"，付费墙上就只剩兜底价格：
+iOS 要等审核，苹果抽 15–30%。**Stripe 抽 2.9% + $0.30，几天到账。**
+
+```bash
+cd omni_flutter
+flutter build web --release \
+  --dart-define=OMNI_API_BASE_URL=https://omni-api.<你的账号>.workers.dev \
+  --dart-define=OMNI_WEB_RETURN_URL=https://你的域名 \
+  --dart-define=OMNI_ANALYTICS_KEY=<PostHog key，可选>
+```
+
+把 `build/web` 部署到 Cloudflare Pages 或 Vercel（都免费），
+然后把 `wrangler.toml` 里的 `ALLOWED_ORIGIN` 改成同一个域名。
+
+`ALLOWED_ORIGIN` 同时是 checkout 唯一允许跳回的地址——防止别人把
+Stripe 回调变成一个带收据的开放重定向。
+
+**建议顺序：Web 先跑，用真实转化数据把价格和文案调好，再提 iOS。**
+
+---
+
+## 4. App Store Connect（iOS）
+
+商品 ID 必须和 `lib/core/billing/products.dart`、`server/catalogue.mjs` 完全一致：
 
 | Product ID | 类型 | 价格 | 备注 |
 |---|---|---|---|
-| `omni.plus.monthly` | 自动续订订阅 | $7.99 | 3 天免费试用 |
-| `omni.plus.annual` | 自动续订订阅 | $39.99 | 7 天免费试用 |
+| `omni.plus.monthly` | 自动续订订阅 | $7.99 | 3 天试用 |
+| `omni.plus.annual` | 自动续订订阅 | $39.99 | 7 天试用 |
 | `omni.plus.lifetime` | 非消耗型 | $99.99 | |
 | `omni.coins.60` | 消耗型 | $1.99 | |
 | `omni.coins.180` | 消耗型 | $4.99 | |
 | `omni.coins.400` | 消耗型 | $9.99 | |
 
-两个订阅放进同一个 **Subscription Group**（这样用户能在月付/年付之间升降级）。
+两个订阅放进同一个 Subscription Group。另外还要：隐私政策 URL、服务条款 URL、
+Privacy Nutrition Label（出生信息本地存储；接了服务端后如实勾选"用于 App 功能，不做追踪"）、
+3 张 6.7" 截图（今日 / 命盘 / 合盘 最能说明差异化）。
 
-还要准备：
-- 隐私政策 URL 和服务条款 URL（付费墙上的按钮现在指向占位提示，等页面上线后接上）
-- **Privacy Nutrition Label**：目前 App 只在本地存出生信息，不上传。
-  接了 AI 代理之后，如实勾选"数据用于 App 功能，不做追踪"
-- 至少 3 张 6.7" 截图（今日 / 命盘 / 合盘 这三屏最能说明差异化）
+⚠️ **iOS 必须走 StoreKit**。苹果会拒绝把数字商品绕开内购的 App——
+`chooseService()` 已经按平台分流，别改。
 
 ---
 
-## 4. 审核风险与对策
+## 5. 审核风险
 
 | 风险 | 对策 |
 |---|---|
-| **4.3 Spam**（星座 App 太多了，苹果批量拒） | 审核备注里直接写清楚：这是唯一把西方本命盘和八字放在同一个命盘里交叉解读的产品，并说明太阳位置用截断 VSOP87 星历、节气用真实黄经反解。差异化要**说出来**，别指望审核员自己发现 |
-| **3.1.2 订阅信息不全** | 已做：付费墙上有价格、周期、自动续订说明、Restore、Terms、Privacy |
-| **占卜类免责** | 已做：账号页有"仅供娱乐、不构成医疗/法律/财务/心理建议"的声明 |
-| **1.4.1 医疗宣称** | 别在文案里写"治疗""缓解焦虑""改善健康"这类词，运势建议不要涉及吃药、看病 |
+| **4.3 Spam**（星座 App 太多，苹果批量拒） | 审核备注里直接写：这是唯一把西方本命盘和八字放进同一命盘交叉解读的产品，太阳位置用截断 VSOP87 星历、节气由真实黄经反解。**差异化要说出来**，别指望审核员自己发现 |
+| 3.1.2 订阅信息不全 | 已做：付费墙上有价格、周期、自动续订说明、Restore、Terms、Privacy |
+| 占卜类免责 | 已做：账号页有"仅供娱乐，不构成医疗/法律/财务/心理建议" |
+| 1.4.1 医疗宣称 | 文案别出现"治疗""缓解焦虑""改善健康"，运势建议别涉及吃药看病 |
 
 ---
 
-## 5. 最快见到现金流的路径：先上 Web
+## 6. 埋点（已接好，缺一个 key）
 
-iOS 提审要等，Apple 抽 30%（小企业计划 15%），还要等 App Store 打款周期。
-**Web 版 + Stripe 当天就能收钱，抽成 2.9% + $0.30。**
+`lib/core/analytics/` 是 provider 无关的事件层，四个决定收入的数已经埋好了：
 
-```bash
-flutter build web --dart-define=GEMINI_API_KEY=...
-# 部署到 Cloudflare Pages / Vercel，免费
-```
+1. `onboarding_started` → `onboarding_completed`（流失最多的一步，并区分有没有出生时间）
+2. `quota_exhausted` + `paywall_shown`（带 trigger：哪个功能触发的，决定免费额度该松还是该紧）
+3. `purchase_started` → `purchase_completed` / `purchase_failed`（行业基准 2–5%）
+4. `reading_viewed`
 
-注意 `in_app_purchase` 没有 web 实现，Web 版需要在 `chooseService()` 里加一个
-Stripe Checkout 的分支。这是目前唯一还没写的收款通路，但抽象层已经留好位置。
-
-策略建议：**Web 先跑起来验证转化率和文案，用真实数据调好价格，再提 iOS**。
-
----
-
-## 5.5 CI
-
-`.github/workflows/ci.yaml` 会在每个 PR 上跑 `flutter analyze` + `flutter test`
-（Flutter 锁 3.24.5），已经在 PR #1 上跑通。
-
-值得留着：引擎测试是拿真实节气和分至点时刻做基准的。这部分一旦回归，
-App 不会崩，只会**悄悄给用户算错星座和月柱**——手测发现不了这种 bug。
-
----
-
-## 6. 上线后第一件事：埋点
-
-现在一个埋点都没有，等于闭着眼睛调价。至少要知道这四个数：
-
-1. 装机 → 填完出生信息的转化率（这一步流失最多）
-2. 付费墙**被哪个功能触发**（决定免费额度该松还是该紧）
-3. 付费墙曝光 → 购买的转化率（行业基准 2–5%）
-4. D1 / D7 留存
-
-用 PostHog 或 Firebase Analytics，一两个小时能接完。
+默认是 no-op。加上 `--dart-define=OMNI_ANALYTICS_KEY=<PostHog project key>` 就开始上报，
+只发匿名 install id，**不发任何出生信息**。
 
 ---
 
@@ -150,26 +145,26 @@ App 不会崩，只会**悄悄给用户算错星座和月柱**——手测发现
 
 | 优先级 | 事项 | 为什么 |
 |---|---|---|
-| P0 | 服务端代理 + 收据验证 | 没有它，key 会被盗刷、订阅能被伪造 |
-| P0 | 隐私政策 / 服务条款页面 | 审核必需 |
-| P0 | 埋点 | 没数据就没法优化转化 |
+| P0 | 隐私政策 / 服务条款页面 | 审核必需；付费墙上现在是占位提示 |
 | P1 | 分享卡（IG Story 竖版图） | 获客靠这个，成本最低 |
+| P1 | 邮箱 magic-link | 见下面的"已知限制" |
 | P1 | 推送（早 8 点运势、节气、水逆） | 留存靠这个 |
-| P1 | 流年大运 | 玉币的主力消费点，现在只有价格没有内容 |
-| P1 | 许愿墙 / 灵魂匹配 | 真社交需要后端（账号、内容审核），是个独立工程 |
-| P2 | 中文本地化 | 引擎已经是中英双语数据，UI 换文案即可 |
-| P2 | 真人占卜师市场 | ARPU 最高但重运营 |
+| P1 | 流年大运 | 玉币的主力消费点，现在有价格没内容 |
+| P2 | 许愿墙 / 灵魂匹配 | 真社交需要账号体系和内容审核，是独立工程 |
+| P2 | 中文本地化 | 引擎数据已经是中英双语，UI 换文案即可 |
 
 ---
 
-## 8. 已知的精度边界
+## 8. 已知限制（诚实记录）
 
-诚实记录，免得以后被用户问住：
+**跨设备恢复**。为了不在用户看到第一份命盘之前就要求注册，结账是匿名的，
+订阅绑在设备上，Stripe 的 session id 就是收据。账号页有"我在另一台设备付过款"
+可以用收据里的恢复码找回。但**删了 App 又没留恢复码，订阅就只能人工去 Stripe 后台查**。
+邮箱 magic-link 是正解，是有收入之后第一个该补的东西。
 
-- **太阳位置 / 节气**：误差小于 1 分钟（8 个公开参考时刻实测，最大 40 秒）
-- **月亮位置**：约 0.3°。落在星座边界 0.3° 内的用户可能被算成邻座——
-  App 会主动提示"临界"，不会假装确定
-- **上升星座**：算法误差可忽略，但用户填的出生时间差 1 分钟就差 0.25°，
-  误差主要来自输入而不是计算
-- **夏令时**：没有内置历史时区库。出生表单会显示 UTC 偏移并允许手动调整，
-  夏令时国家会给出提示。要做到全自动，需要引入 `timezone` 包和 tzdata
+**精度**：
+- 太阳位置 / 节气：误差 < 1 分钟（8 个公开参考时刻实测，最大 40 秒）
+- 月亮位置：约 0.3°，落在星座边界 0.3° 内的用户可能算成邻座——App 会主动提示"临界"
+- 上升星座：算法误差可忽略，误差主要来自用户填的出生时间
+- **夏令时没有内置历史时区库**。出生表单会显示 UTC 偏移并允许手动调整，
+  夏令时国家会给提示。要全自动需要引入 `timezone` 包和 tzdata

@@ -31,3 +31,26 @@ jobs:
       # regression here means the app is quietly telling people the wrong
       # sign.
       - run: flutter test
+
+      # The web build is the one that can take money without waiting on an
+      # App Store review, so a break in it is a revenue outage.
+      - run: flutter build web --release
+
+  server:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # These cover who is and is not a paying customer, plus webhook
+      # signature verification. No network and no dependencies, so there is
+      # nothing to install.
+      - run: node --test

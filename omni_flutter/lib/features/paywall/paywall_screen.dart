@@ -14,6 +14,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/analytics/analytics.dart';
 import '../../core/billing/entitlements.dart';
 import '../../core/billing/products.dart';
 import '../../core/billing/purchase_service.dart';
@@ -48,6 +49,28 @@ class PaywallScreen extends StatefulWidget {
 class _PaywallScreenState extends State<PaywallScreen> {
   String _selectedId = 'omni.plus.annual';
   String? _error;
+  bool _converted = false;
+
+  /// Held rather than looked up on demand: `dispose` runs after this element is
+  /// deactivated, and a provider lookup there throws.
+  late final Analytics _analytics;
+
+  @override
+  void initState() {
+    super.initState();
+    _analytics = context.read<Analytics>();
+    // Which feature sent them here is the number that decides whether the free
+    // tier is too generous or too mean, and it differs per feature.
+    _analytics.paywallShown(trigger: widget.trigger);
+  }
+
+  @override
+  void dispose() {
+    if (!_converted) {
+      _analytics.paywallDismissed(trigger: widget.trigger);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,14 +150,24 @@ class _PaywallScreenState extends State<PaywallScreen> {
   Future<void> _buy(OmniProduct product) async {
     setState(() => _error = null);
     final service = context.read<PurchaseService>();
+
+    _analytics.purchaseStarted(product);
     final result = await service.buy(product);
     if (!mounted) return;
 
     if (result.isSuccess) {
+      _analytics.purchaseCompleted(product);
+      _converted = true;
       Navigator.of(context).pop(true);
       return;
     }
     if (result.outcome == PurchaseOutcome.cancelled) return;
+    if (result.outcome == PurchaseOutcome.pending) {
+      // Stripe Checkout navigates away; the result lands on the way back in.
+      setState(() => _error = result.message);
+      return;
+    }
+    _analytics.purchaseFailed(product, result.message);
     setState(() => _error = result.message ?? 'That did not go through.');
   }
 

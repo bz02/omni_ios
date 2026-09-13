@@ -28,6 +28,15 @@ class AppConfig {
 
   static bool get usesBackendProxy => apiBaseUrl.isNotEmpty;
 
+  /// PostHog project key. Empty disables analytics entirely.
+  static const String analyticsKey =
+      String.fromEnvironment('OMNI_ANALYTICS_KEY', defaultValue: '');
+
+  /// Where Stripe returns the browser after checkout. Must match the deployed
+  /// web origin, and is passed to the backend rather than trusted from it.
+  static const String webReturnUrl =
+      String.fromEnvironment('OMNI_WEB_RETURN_URL', defaultValue: '');
+
   static const String appVersion = '1.0.0';
 
   /// Free tier limits. Deliberately generous: the paywall converts better after

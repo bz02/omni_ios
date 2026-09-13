@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/analytics/analytics.dart';
 import '../../core/billing/entitlements.dart';
 import '../../core/engine/iching.dart';
 import '../../core/engine/tarot.dart';
@@ -128,6 +129,7 @@ class _OracleScreenState extends State<OracleScreen> {
   Future<void> _draw(EntitlementsController entitlements) async {
     final decision = entitlements.check(PremiumFeature.oracle);
     if (decision is AccessNeedsUpgrade) {
+      context.read<Analytics>().quotaExhausted(PremiumFeature.oracle);
       await PaywallScreen.show(context,
           trigger: PremiumFeature.oracle, coinPrice: decision.coinPrice);
       return;
@@ -141,6 +143,7 @@ class _OracleScreenState extends State<OracleScreen> {
     // Recorded only after the draw actually happened, so a cancelled or failed
     // attempt never burns a free use.
     await entitlements.recordUse(PremiumFeature.oracle);
+    if (mounted) context.read<Analytics>().readingViewed('oracle');
   }
 }
 

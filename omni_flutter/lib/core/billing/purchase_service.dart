@@ -11,8 +11,11 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
+import '../net/omni_api.dart';
 import 'entitlements.dart';
+import 'install_identity.dart';
 import 'products.dart';
+import 'stripe_checkout_service.dart';
 
 /// A product with the price the store actually charges.
 class PricedProduct {
@@ -282,12 +285,36 @@ class SandboxPurchaseService extends PurchaseService {
       const PurchaseResult(PurchaseOutcome.restored);
 }
 
-/// Picks an implementation. Release builds always get the real store.
+/// Picks an implementation for the platform this build is running on.
+///
+/// Web goes to Stripe because `in_app_purchase` has no web implementation, and
+/// because Stripe takes 2.9% and settles in days where the App Store takes 15
+/// to 30% and settles after a review queue. iOS and Android must use the
+/// stores: Apple rejects apps that route digital goods around StoreKit.
+///
+/// With nothing configured, a debug build falls back to a sandbox that grants
+/// purchases locally so the paywall and every gate behind it stay testable.
 PurchaseService chooseService({
   required EntitlementsController entitlements,
-  bool useSandbox = false,
+  required InstallIdentity identity,
+  required OmniApi api,
+  String? webReturnUrl,
 }) {
-  if (useSandbox && !kReleaseMode) {
+  if (kIsWeb) {
+    if (api.isConfigured) {
+      return StripeCheckoutService(
+        entitlements: entitlements,
+        identity: identity,
+        api: api,
+        returnUrl: webReturnUrl ?? '',
+      );
+    }
+    // A web build with no backend cannot charge anyone. Outside release that
+    // is a developer running locally, so let them exercise the paywall.
+    return SandboxPurchaseService(entitlements: entitlements);
+  }
+
+  if (!kReleaseMode && !api.isConfigured) {
     return SandboxPurchaseService(entitlements: entitlements);
   }
   return StorePurchaseService(entitlements: entitlements);

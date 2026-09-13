@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:omni_flutter/core/analytics/analytics.dart';
 import 'package:omni_flutter/core/billing/entitlements.dart';
 import 'package:omni_flutter/core/billing/purchase_service.dart';
 import 'package:omni_flutter/core/engine/soul_blueprint.dart';
@@ -33,6 +34,7 @@ Future<
       Widget app,
       EntitlementsController entitlements,
       ProfileController profile,
+      RecordingAnalytics analytics,
     })> _harness({BirthData? birth}) async {
   SharedPreferences.setMockInitialValues({});
   final preferences = await SharedPreferences.getInstance();
@@ -44,6 +46,7 @@ Future<
   if (birth != null) await profile.setBirth(birth);
 
   final purchases = SandboxPurchaseService(entitlements: entitlements);
+  final analytics = RecordingAnalytics();
 
   return (
     app: MultiProvider(
@@ -51,6 +54,7 @@ Future<
         ChangeNotifierProvider.value(value: entitlements),
         ChangeNotifierProvider.value(value: profile),
         ChangeNotifierProvider<PurchaseService>.value(value: purchases),
+        Provider<Analytics>.value(value: analytics),
         ChangeNotifierProvider(create: (_) => AppState()),
         ChangeNotifierProvider(create: (_) => UserService()),
         ChangeNotifierProvider(create: (_) => GeminiService(apiKey: '')),
@@ -59,7 +63,24 @@ Future<
     ),
     entitlements: entitlements,
     profile: profile,
+    analytics: analytics,
   );
+}
+
+/// Captures events so tests can assert the funnel fires, without sending
+/// anything anywhere.
+class RecordingAnalytics extends Analytics {
+  final List<({String event, Map<String, Object?> properties})> events = [];
+
+  @override
+  void track(String event, [Map<String, Object?> properties = const {}]) {
+    events.add((event: event, properties: properties));
+  }
+
+  bool sawEvent(String name) => events.any((e) => e.event == name);
+
+  Map<String, Object?>? propertiesFor(String name) =>
+      events.where((e) => e.event == name).firstOrNull?.properties;
 }
 
 /// Sizes the test view like a phone. The default 800x600 is nothing like the
@@ -322,6 +343,77 @@ void main() {
 
     expect(harness.profile.hasProfile, isTrue);
     expect(find.byType(BottomNavigationBar), findsOneWidget);
+  });
+
+  testWidgets('the funnel records the paywall trigger and the purchase',
+      (tester) async {
+    _usePhoneViewport(tester);
+    final harness = await _harness(birth: _sampleBirth);
+    await tester.pumpWidget(harness.app);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Chart'));
+    await tester.pumpAndSettle();
+
+    final locked = find.textContaining('more readings of your chart');
+    await _reveal(tester, locked);
+    await tester.tap(locked);
+    await tester.pumpAndSettle();
+
+    // Which feature sent them here is what decides the free tier's size.
+    expect(harness.analytics.propertiesFor('paywall_shown')?['trigger'],
+        'fullBlueprint');
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Start 7 days free'));
+    await tester.pumpAndSettle();
+
+    expect(harness.analytics.sawEvent('purchase_started'), isTrue);
+    expect(harness.analytics.propertiesFor('purchase_completed')?['product_id'],
+        'omni.plus.annual');
+    // A conversion is not also a dismissal.
+    expect(harness.analytics.sawEvent('paywall_dismissed'), isFalse);
+  });
+
+  testWidgets('running out of free draws is recorded before the paywall',
+      (tester) async {
+    _usePhoneViewport(tester);
+    final harness = await _harness(birth: _sampleBirth);
+    for (var i = 0; i < freeDailyAllowance[PremiumFeature.oracle]!; i++) {
+      await harness.entitlements.recordUse(PremiumFeature.oracle);
+    }
+
+    await tester.pumpWidget(harness.app);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Oracle'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Draw'));
+    await tester.pumpAndSettle();
+
+    expect(harness.analytics.propertiesFor('quota_exhausted')?['feature'],
+        'oracle');
+  });
+
+  testWidgets('completing onboarding is recorded with what was supplied',
+      (tester) async {
+    _usePhoneViewport(tester);
+    final harness = await _harness();
+    await tester.pumpWidget(harness.app);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Start'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose a city'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New York').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Read my chart'));
+    await tester.pumpAndSettle();
+
+    expect(harness.analytics.sawEvent('onboarding_started'), isTrue);
+    final props = harness.analytics.propertiesFor('onboarding_completed');
+    expect(props?['has_birth_place'], isTrue);
+    // The form defaults to no birth time, and half the audience never has one.
+    expect(props?['has_birth_time'], isFalse);
   });
 
   testWidgets('paywall opened directly offers all three plans', (tester) async {

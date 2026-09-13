@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/analytics/analytics.dart';
 import '../../core/billing/entitlements.dart';
 import '../../core/engine/compatibility.dart';
 import '../../core/engine/soul_blueprint.dart';
@@ -69,6 +70,7 @@ class MatchScreen extends StatelessWidget {
     final entitlements = context.read<EntitlementsController>();
     final decision = entitlements.check(PremiumFeature.compatibility);
     if (decision is AccessNeedsUpgrade) {
+      context.read<Analytics>().quotaExhausted(PremiumFeature.compatibility);
       await PaywallScreen.show(context,
           trigger: PremiumFeature.compatibility,
           coinPrice: decision.coinPrice);

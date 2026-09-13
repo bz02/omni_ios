@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'config/app_config.dart';
+import 'core/analytics/analytics.dart';
 import 'core/billing/entitlements.dart';
+import 'core/billing/install_identity.dart';
 import 'core/billing/purchase_service.dart';
+import 'core/billing/stripe_checkout_service.dart';
+import 'core/net/omni_api.dart';
 import 'core/theme/modern_theme.dart';
 import 'features/account/account_screen.dart';
 import 'features/blueprint/blueprint_screen.dart';
@@ -21,18 +27,35 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final preferences = await SharedPreferences.getInstance();
 
+  final identity = InstallIdentity(preferences: preferences);
+  await identity.load();
+
   final entitlements = EntitlementsController(preferences: preferences);
   final profile = ProfileController(preferences: preferences);
   await Future.wait([entitlements.load(), profile.load()]);
 
-  // Without a store account configured, a debug build falls back to a
-  // sandbox that grants purchases locally so the paywall and every gate
-  // behind it can be exercised. Release builds always talk to the real store.
+  final api = OmniApi();
+  final analytics = createAnalytics(
+    projectKey: AppConfig.analyticsKey,
+    distinctId: identity.installId,
+  );
+
   final purchases = chooseService(
     entitlements: entitlements,
-    useSandbox: !AppConfig.usesBackendProxy,
+    identity: identity,
+    api: api,
+    webReturnUrl: AppConfig.webReturnUrl,
   );
   unawaitedInitialise(purchases);
+
+  // Stripe sends the browser back with the session id on the query string.
+  // That id is the receipt, so this is where a web purchase actually lands.
+  final returningSession = Uri.base.queryParameters['session_id'];
+  if (purchases is StripeCheckoutService &&
+      returningSession != null &&
+      returningSession.isNotEmpty) {
+    unawaited(_completeWebCheckout(purchases, analytics, returningSession));
+  }
 
   runApp(
     MultiProvider(
@@ -40,6 +63,9 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: entitlements),
         ChangeNotifierProvider.value(value: profile),
         ChangeNotifierProvider<PurchaseService>.value(value: purchases),
+        Provider<Analytics>.value(value: analytics),
+        Provider<InstallIdentity>.value(value: identity),
+        Provider<OmniApi>.value(value: api),
         // The pet-era features still run on these. They are reachable from the
         // Oracle tab rather than the tab bar, so they keep working without
         // taking up room the two charts need.
@@ -52,6 +78,19 @@ Future<void> main() async {
       child: const ProviderScope(child: OmniApp()),
     ),
   );
+}
+
+Future<void> _completeWebCheckout(
+  StripeCheckoutService purchases,
+  Analytics analytics,
+  String sessionId,
+) async {
+  final result = await purchases.completePendingCheckout(sessionId);
+  if (result.outcome == PurchaseOutcome.purchased) {
+    analytics.track('purchase_completed_web', {'session': 'returned'});
+  } else if (result.outcome == PurchaseOutcome.failed) {
+    analytics.track('purchase_failed_web', {'reason': result.message ?? ''});
+  }
 }
 
 /// Product queries can be slow and must never hold up first paint.

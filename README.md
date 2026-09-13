@@ -49,11 +49,25 @@ cd omni_flutter
 flutter pub get
 flutter run                                        # works fully offline
 flutter run --dart-define=GEMINI_API_KEY=...       # adds the chat layer
-flutter test                                       # 121 tests
+flutter test                                       # 143 tests
+cd ../server && node --test                        # 31 more
 ```
 
 No key is required. Every reading is computed on the device; the model only
 turns a computed chart into prose.
+
+## Taking money
+
+The web build charges through Stripe: 2.9% and days to payout, against the App
+Store's 15–30% and a review queue. iOS and Android go through StoreKit and Play
+Billing, because Apple rejects apps that route digital goods around them —
+`chooseService()` picks by platform.
+
+`server/` is one Cloudflare Worker covering the three things that need a server:
+the model key (a client-side key is extractable), proof of payment (a purchase
+recorded on a phone is a number a jailbroken device can edit), and Stripe
+Checkout itself. The client sends a product id and nothing else — the price,
+the tier and the coin count are all looked up server-side.
 
 ## Layout
 
@@ -71,8 +85,12 @@ omni_flutter/lib/
 │   ├── daily_fortune    the derived daily score
 │   └── compatibility    both traditions, scored separately
 ├── core/billing/    subscriptions, Jade Coins, and one gate for every feature
+├── core/net/        the backend client
+├── core/analytics/  the conversion funnel, provider-agnostic
 ├── features/        the screens
 └── state/           birth record and saved people
+
+server/              Cloudflare Worker: Stripe, entitlements, model proxy
 ```
 
 ## Docs

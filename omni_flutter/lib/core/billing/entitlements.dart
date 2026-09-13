@@ -287,6 +287,18 @@ class EntitlementsController extends ChangeNotifier {
     return true;
   }
 
+  /// Replaces the balance with the server's figure.
+  ///
+  /// Distinct from [grantCoins] on purpose: once a backend is answering, its
+  /// number is the truth and the local one is a cache. Adding to a cached
+  /// balance on every sync would mint coins.
+  Future<void> setCoinBalance(int balance) async {
+    if (balance == _entitlements.jadeCoins) return;
+    _entitlements = _entitlements.copyWith(jadeCoins: balance);
+    await _persistEntitlements();
+    notifyListeners();
+  }
+
   Future<void> grantCoins(int amount) async {
     _entitlements =
         _entitlements.copyWith(jadeCoins: _entitlements.jadeCoins + amount);
