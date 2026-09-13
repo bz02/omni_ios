@@ -43,5 +43,7 @@ class AppConfig {
   /// the user has seen a real reading than before.
   static const int freeChatMessagesPerDay = 3;
   static const int freeOracleDrawsPerDay = 1;
-  static const int freeCompatibilityChecksPerMonth = 3;
+  /// Compatibility scoring is unlimited and free. Kept as a named zero so the
+  /// decision is visible rather than looking like an omission.
+  static const int freeCompatibilityChecksPerMonth = 0;
 }

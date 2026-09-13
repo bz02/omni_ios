@@ -27,7 +27,7 @@ rest.
 | **Chart** | Sun, Moon, Rising, Midheaven, all eight planets with houses and natal retrogrades — then the Eastern second opinion underneath |
 | **Timeline** | The ten-year luck pillars and the year-by-year forecast, with the starting age measured off a real solar term |
 | **Oracle** | One question, three tarot cards and a cast hexagram, plus a verdict on whether the two oracles agree |
-| **Match** | Compatibility scored separately by each tradition |
+| **Match** | Compatibility scored separately by each tradition — free and unlimited, with a story-sized share card |
 | **You** | Plan, Jade Coins, and how every number is worked out |
 
 ## Why the numbers are trustworthy
@@ -66,7 +66,7 @@ cd omni_flutter
 flutter pub get
 flutter run                                        # works fully offline
 flutter run --dart-define=GEMINI_API_KEY=...       # adds the chat layer
-flutter test                                       # 213 tests
+flutter test                                       # 223 tests
 cd ../server && node --test                        # 31 more
 ```
 

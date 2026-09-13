@@ -15,6 +15,7 @@ import 'package:omni_flutter/core/billing/purchase_service.dart';
 import 'package:omni_flutter/core/engine/luck_pillars.dart';
 import 'package:omni_flutter/core/engine/soul_blueprint.dart';
 import 'package:omni_flutter/features/paywall/paywall_screen.dart';
+import 'package:omni_flutter/features/share/share_card.dart';
 import 'package:omni_flutter/main.dart';
 import 'package:omni_flutter/providers/app_state.dart';
 import 'package:omni_flutter/services/gemini_service.dart';
@@ -449,6 +450,102 @@ void main() {
       final nextYear = DateTime.now().year + 1;
       await _reveal(tester, find.textContaining('$nextYear ·'));
       expect(find.textContaining('$nextYear ·'), findsOneWidget);
+    });
+  });
+
+  group('compatibility is the growth loop, so it is not metered', () {
+    testWidgets('a free user can add person after person with no paywall',
+        (tester) async {
+      _usePhoneViewport(tester);
+      final harness = await _harness(birth: _sampleBirth);
+
+      // Well past what the old three-a-month allowance would have permitted.
+      for (var i = 0; i < 6; i++) {
+        await harness.profile.addPerson(SavedPerson(
+          id: 'p$i',
+          name: 'Person $i',
+          birth: BirthData(
+            localDateTime: DateTime(1990 + i, 3, 3, 6),
+            utcOffsetHours: 8,
+            latitudeNorth: 31.2304,
+            longitudeEast: 121.4737,
+          ),
+        ));
+      }
+
+      await tester.pumpWidget(harness.app);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Match'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('OMNI PLUS'), findsNothing);
+      expect(find.text('Person 0'), findsOneWidget);
+    });
+
+    testWidgets('the score and the reasoning are free; the write-up is not',
+        (tester) async {
+      _usePhoneViewport(tester);
+      final harness = await _harness(birth: _sampleBirth);
+      await harness.profile.addPerson(SavedPerson(
+        id: 'p1',
+        name: 'Wen',
+        birth: BirthData(
+          localDateTime: DateTime(1991, 3, 3, 6),
+          utcOffsetHours: 8,
+          latitudeNorth: 31.2304,
+          longitudeEast: 121.4737,
+        ),
+      ));
+
+      await tester.pumpWidget(harness.app);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Match'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Wen'));
+      await tester.pumpAndSettle();
+
+      // Free: both traditions, and the factor breakdown that is the whole
+      // "shows its work" pitch. Charging for the arithmetic would contradict
+      // the positioning.
+      expect(find.text('東 Chinese'), findsOneWidget);
+      await _reveal(tester, find.text('CHINESE READING'));
+      expect(find.text('CHINESE READING'), findsOneWidget);
+      await _reveal(tester, find.text('WESTERN READING'));
+      expect(find.text('WESTERN READING'), findsOneWidget);
+
+      // Paid: the written read and the timing.
+      await _reveal(tester, find.text('The full relationship read'));
+      expect(find.text('The full relationship read'), findsOneWidget);
+    });
+
+    testWidgets('the share card opens with the split score on it',
+        (tester) async {
+      _usePhoneViewport(tester);
+      final harness = await _harness(birth: _sampleBirth);
+      await harness.profile.addPerson(SavedPerson(
+        id: 'p1',
+        name: 'Wen',
+        birth: BirthData(
+          localDateTime: DateTime(1991, 3, 3, 6),
+          utcOffsetHours: 8,
+          latitudeNorth: 31.2304,
+          longitudeEast: 121.4737,
+        ),
+      ));
+
+      await tester.pumpWidget(harness.app);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Match'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Wen'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.ios_share).first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Share this'), findsOneWidget);
+      expect(find.byType(CompatibilityShareCard), findsOneWidget);
+      expect(find.text('OMNI'), findsOneWidget);
     });
   });
 

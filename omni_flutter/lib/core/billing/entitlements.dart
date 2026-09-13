@@ -25,8 +25,17 @@ enum PremiumFeature {
   /// Tarot and I Ching consultations.
   oracle('Unlimited oracle draws', Tier.plus),
 
-  /// Running a compatibility check against another person.
-  compatibility('Unlimited compatibility', Tier.plus),
+  /// The long-form written relationship read, and month-by-month timing for
+  /// the pair.
+  ///
+  /// Scoring a pair is deliberately **not** gated. It is the category's
+  /// biggest premium driver and the competitor that owns this space just put
+  /// it behind a paywall, which is the single most-complained-about thing in
+  /// its current reviews. Gating the number would also contradict the whole
+  /// pitch: an app whose argument is that it shows its arithmetic cannot
+  /// charge to show the arithmetic. So the computation stays free and
+  /// transparent, and what is sold is the writing and the timing.
+  relationshipReport('Full relationship report', Tier.plus),
 
   /// One-off long-form reports, also purchasable with coins.
   deepDive('Deep dive report', Tier.plus),
@@ -55,7 +64,7 @@ enum PremiumFeature {
 const Map<PremiumFeature, int> coinPrices = {
   PremiumFeature.deepDive: 180,
   PremiumFeature.yearAhead: 320,
-  PremiumFeature.compatibility: 240,
+  PremiumFeature.relationshipReport: 240,
 };
 
 /// Free-tier allowances, keyed by feature. Absent means unlimited on free.
@@ -64,9 +73,13 @@ const Map<PremiumFeature, int> freeDailyAllowance = {
   PremiumFeature.oracle: AppConfig.freeOracleDrawsPerDay,
 };
 
-const Map<PremiumFeature, int> freeMonthlyAllowance = {
-  PremiumFeature.compatibility: AppConfig.freeCompatibilityChecksPerMonth,
-};
+/// Features metered by the month rather than the day.
+///
+/// Empty by design. Compatibility used to live here at three checks a month;
+/// it was moved out because scoring a pair is the growth loop, and metering a
+/// growth loop is how Co-Star turned its own viral feature into its worst
+/// reviews.
+const Map<PremiumFeature, int> freeMonthlyAllowance = <PremiumFeature, int>{};
 
 /// The answer to "can they do this right now".
 sealed class AccessDecision {

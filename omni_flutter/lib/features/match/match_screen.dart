@@ -10,13 +10,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/analytics/analytics.dart';
-import '../../core/billing/entitlements.dart';
 import '../../core/engine/compatibility.dart';
 import '../../core/engine/soul_blueprint.dart';
 import '../../core/theme/modern_theme.dart';
 import '../../state/profile_controller.dart';
+import '../../core/billing/entitlements.dart';
 import '../onboarding/birth_form_screen.dart';
 import '../paywall/paywall_screen.dart';
+import '../share/share_sheet.dart';
 
 class MatchScreen extends StatelessWidget {
   const MatchScreen({super.key});
@@ -67,17 +68,8 @@ class MatchScreen extends StatelessWidget {
   }
 
   Future<void> _add(BuildContext context) async {
-    final entitlements = context.read<EntitlementsController>();
-    final decision = entitlements.check(PremiumFeature.compatibility);
-    if (decision is AccessNeedsUpgrade) {
-      context.read<Analytics>().quotaExhausted(PremiumFeature.compatibility);
-      await PaywallScreen.show(context,
-          trigger: PremiumFeature.compatibility,
-          coinPrice: decision.coinPrice);
-      return;
-    }
-
-    if (!context.mounted) return;
+    // No gate. Scoring a pair is free and unlimited on purpose — see the note
+    // on PremiumFeature.relationshipReport.
     final birth = await Navigator.of(context).push<BirthData>(
       MaterialPageRoute(
         builder: (_) => const BirthFormScreen(
@@ -96,7 +88,7 @@ class MatchScreen extends StatelessWidget {
           name: birth.displayName ?? 'Them',
           birth: birth,
         ));
-    await entitlements.recordUse(PremiumFeature.compatibility);
+    if (context.mounted) context.read<Analytics>().track('compatibility_added');
   }
 
   void _open(
@@ -239,7 +231,21 @@ class _MatchDetailScreen extends StatelessWidget {
     final west = result.factors.where((f) => f.tradition == 'west').toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text('You and ${person.name}')),
+      appBar: AppBar(
+        title: Text('You and ${person.name}'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.ios_share),
+            tooltip: 'Share',
+            onPressed: () => showCompatibilityShareSheet(
+              context,
+              result: result,
+              yourName: 'You',
+              theirName: person.name,
+            ),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
         children: [
@@ -305,7 +311,96 @@ class _MatchDetailScreen extends StatelessWidget {
           _FactorGroup(title: 'Chinese reading', factors: east),
           const SizedBox(height: 20),
           _FactorGroup(title: 'Western reading', factors: west),
+          const SizedBox(height: 24),
+          _ShareRow(person: person, result: result),
+          const SizedBox(height: 16),
+          const _FullReportUpsell(),
         ],
+      ),
+    );
+  }
+}
+
+/// The growth loop, given its own block rather than only an icon in the bar.
+///
+/// Compatibility needs a second birthday, so every result already implies a
+/// conversation with someone. The card is what travels.
+class _ShareRow extends StatelessWidget {
+  const _ShareRow({required this.person, required this.result});
+
+  final SavedPerson person;
+  final CompatibilityResult result;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () => showCompatibilityShareSheet(
+            context,
+            result: result,
+            yourName: 'You',
+            theirName: person.name,
+          ),
+          icon: const Icon(Icons.ios_share, size: 19),
+          label: Text(result.disagreement >= 25
+              ? 'Share — the two systems disagree'
+              : 'Share this'),
+        ),
+      );
+}
+
+/// What is actually sold here.
+///
+/// Not the score and not the reasoning: those stay free, because metering the
+/// growth loop is what turned the category leader's best feature into its
+/// worst reviews, and because an app whose pitch is that it shows its
+/// arithmetic cannot charge to show the arithmetic. What is sold is the
+/// long-form write-up and the timing.
+class _FullReportUpsell extends StatelessWidget {
+  const _FullReportUpsell();
+
+  @override
+  Widget build(BuildContext context) {
+    final unlocked = context
+        .watch<EntitlementsController>()
+        .check(PremiumFeature.relationshipReport)
+        .isAllowed;
+    if (unlocked) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () => PaywallScreen.show(
+        context,
+        trigger: PremiumFeature.relationshipReport,
+        coinPrice: coinPrices[PremiumFeature.relationshipReport],
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: ModernTheme.primary.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: ModernTheme.primary.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.auto_stories_outlined,
+                color: ModernTheme.primary),
+            const SizedBox(height: 10),
+            Text('The full relationship read',
+                style: ModernTheme.subHeader.copyWith(fontSize: 16)),
+            const SizedBox(height: 6),
+            Text(
+              'The scores and the reasoning above are always free. This is the '
+              'written read of the two charts together, plus the months ahead '
+              'where transits hit both of you at once.',
+              textAlign: TextAlign.center,
+              style: ModernTheme.caption.copyWith(fontSize: 13),
+            ),
+            const SizedBox(height: 14),
+            const Text('Unlock with Omni Plus',
+                style: TextStyle(
+                    color: ModernTheme.primary, fontWeight: FontWeight.w700)),
+          ],
+        ),
       ),
     );
   }

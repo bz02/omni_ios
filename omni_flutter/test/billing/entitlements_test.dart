@@ -61,16 +61,22 @@ void main() {
       expect(decision.coinPrice, coinPrices[PremiumFeature.deepDive]);
     });
 
-    test('compatibility runs on a monthly window', () async {
+    test('the written relationship report is what is sold, not the score',
+        () async {
       final e = await _fresh();
-      final cap = freeMonthlyAllowance[PremiumFeature.compatibility]!;
-      for (var i = 0; i < cap; i++) {
-        expect(e.check(PremiumFeature.compatibility), isA<AccessAllowed>());
-        await e.recordUse(PremiumFeature.compatibility);
-      }
-      final blocked =
-          e.check(PremiumFeature.compatibility) as AccessNeedsUpgrade;
-      expect(blocked.reason, contains('month'));
+      // The gated feature is the write-up. Scoring a pair has no feature at
+      // all, which is the point: there is nothing to check before running it.
+      expect(e.check(PremiumFeature.relationshipReport),
+          isA<AccessNeedsUpgrade>());
+      expect(
+          PremiumFeature.values.map((f) => f.name), isNot(contains('compatibility')));
+    });
+
+    test('nothing is metered by the month any more', () async {
+      // Compatibility used to sit here at three checks a month. Metering the
+      // growth loop is exactly what turned the category leader's best feature
+      // into its worst reviews, so the window is deliberately empty.
+      expect(freeMonthlyAllowance, isEmpty);
     });
   });
 
