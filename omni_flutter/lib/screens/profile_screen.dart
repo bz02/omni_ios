@@ -49,7 +49,7 @@ class ProfileScreen extends StatelessWidget {
                     style: ModernTheme.header,
                   ),
                   IconButton(
-                    icon: Icon(Icons.edit_outlined, color: ModernTheme.textMain),
+                    icon: const Icon(Icons.edit_outlined, color: ModernTheme.textMain),
                     onPressed: () => _showEditProfileDialog(context, appState),
                   ),
                 ],
@@ -61,7 +61,7 @@ class ProfileScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(32),
                 decoration: ModernTheme.cardDecoration.copyWith(
-                  gradient: LinearGradient(
+                  gradient: const LinearGradient(
                     colors: [ModernTheme.primary, Color(0xFF818CF8)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -188,9 +188,9 @@ class ProfileScreen extends StatelessWidget {
                     Expanded(
                       child: _buildStatItem(
                         'Energy',
-                        displayUser.energyDNA?.type?.split(' ').first ?? 'None',
+                        displayUser.energyDNA?.type.split(' ').first ?? 'None',
                         Icons.bolt,
-                        Color(0xFFFFB84C),
+                        const Color(0xFFFFB84C),
                       ),
                     ),
                     Container(width: 1, height: 40, color: ModernTheme.border),
@@ -199,7 +199,7 @@ class ProfileScreen extends StatelessWidget {
                         'Streak',
                         '1 Day',
                         Icons.local_fire_department,
-                        Color(0xFFEF4444),
+                        const Color(0xFFEF4444),
                       ),
                     ),
                   ],
@@ -258,7 +258,7 @@ class ProfileScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: ModernTheme.textSub)),
+            child: const Text('Cancel', style: TextStyle(color: ModernTheme.textSub)),
           ),
           ElevatedButton(
             onPressed: () {

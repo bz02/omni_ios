@@ -12,6 +12,25 @@ class ModernTheme {
   static const Color border = Color(0xFFE2E8F0); // Slate 200
   static const Color error = Color(0xFFEF4444);
 
+  // East/West accents. Jade and vermilion carry the Chinese half of the
+  // identity; the indigo above carries the Western half. Ink is for the
+  // full-bleed chart surfaces, which read better dark.
+  static const Color jade = Color(0xFF0F9D76);
+  static const Color vermilion = Color(0xFFD64545);
+  static const Color gold = Color(0xFFC79A3A);
+  static const Color ink = Color(0xFF12121A);
+  static const Color inkSoft = Color(0xFF1E1E2A);
+
+  /// Score bands, shared by the daily energy ring and the compatibility dial so
+  /// a number means the same colour everywhere in the app.
+  static Color forScore(int score) {
+    if (score >= 85) return jade;
+    if (score >= 70) return const Color(0xFF3FA796);
+    if (score >= 55) return primary;
+    if (score >= 40) return gold;
+    return vermilion;
+  }
+
   // Gradients (Subtle or removed as requested, keeping flat mostly)
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primary, primary], // Fallback to solid
@@ -69,7 +88,6 @@ class ModernTheme {
       primary: primary,
       secondary: secondary,
       surface: surface,
-      background: background,
       onPrimary: Colors.white,
       onSurface: textMain,
     ),

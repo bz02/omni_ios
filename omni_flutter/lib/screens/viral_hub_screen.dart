@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../services/gemini_service.dart';
 import '../config/app_config.dart';
-import '../providers/app_state.dart';
 
 class ViralHubScreen extends StatefulWidget {
   const ViralHubScreen({super.key});

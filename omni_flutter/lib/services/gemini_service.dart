@@ -1,7 +1,6 @@
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
-import 'dart:typed_data';
 
 enum ChatMode {
   cosmicGuide,   // Mystical + Wise
@@ -234,7 +233,7 @@ Aesthetic: Modern, Instagram-worthy, minimalist background
 
   // Pet Psychic (existing)
   Future<Map<String, String>> analyzePetPhoto(Uint8List imageBytes) async {
-    final prompt = '''
+    const prompt = '''
 YOU ARE THE PET PSYCHIC ORACLE 🐾🔮
 
 Analyze this pet photo. Output JSON:
@@ -366,7 +365,10 @@ Generate personalized forecast (JSON):
       if (jsonStart >= 0 && jsonEnd > jsonStart) {
         return jsonDecode(text.substring(jsonStart, jsonEnd));
       }
-    } catch (e) {}
+    } on FormatException {
+      // Models wrap JSON in prose often enough that a parse failure is an
+      // expected outcome, not an error. The caller supplies a fallback.
+    }
     return {};
   }
 
@@ -377,7 +379,9 @@ Generate personalized forecast (JSON):
       if (jsonStart >= 0 && jsonEnd > jsonStart) {
         return jsonDecode(text.substring(jsonStart, jsonEnd));
       }
-    } catch (e) {}
+    } on FormatException {
+      // As above: unparseable output falls back rather than throwing.
+    }
     return [];
   }
 
@@ -389,7 +393,7 @@ Generate personalized forecast (JSON):
   // Daily content methods for HomeScreen
   Future<String> getDailyVibe() async {
     try {
-      final prompt = '''Generate a short, inspiring daily vibe message (2-3 sentences) 
+      const prompt = '''Generate a short, inspiring daily vibe message (2-3 sentences) 
       in a mystical, cyber-taoist style. Make it uplifting and thought-provoking.''';
       
       final response = await _model.generateContent([Content.text(prompt)]);
@@ -401,7 +405,7 @@ Generate personalized forecast (JSON):
 
   Future<String> getTodaysWisdom() async {
     try {
-      final prompt = '''Generate a short wisdom quote (1-2 sentences) 
+      const prompt = '''Generate a short wisdom quote (1-2 sentences) 
       blending ancient philosophy with futuristic insight. Make it profound yet accessible.''';
       
       final response = await _model.generateContent([Content.text(prompt)]);
@@ -413,7 +417,7 @@ Generate personalized forecast (JSON):
 
   Future<String> getOutfitOfTheDay() async {
     try {
-      final prompt = '''Generate a creative "Outfit of the Day" recommendation 
+      const prompt = '''Generate a creative "Outfit of the Day" recommendation 
       with a cyber-punk meets spiritual aesthetic. Describe a complete look (2-3 sentences).''';
       
       final response = await _model.generateContent([Content.text(prompt)]);

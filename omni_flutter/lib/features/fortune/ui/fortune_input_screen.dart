@@ -181,7 +181,7 @@ class _FortuneInputScreenState extends State<FortuneInputScreen> {
                                       : FontWeight.w600,
                                 ),
                               ),
-                              Icon(
+                              const Icon(
                                 Icons.calendar_today,
                                 color: MysticalColors.roseQuartz,
                               ),

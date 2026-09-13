@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/modern_theme.dart';
 import '../providers/scanner_provider.dart';
 import '../widgets/bagua_painter.dart';
@@ -142,7 +140,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                       ),
                     ],
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.camera_alt,
                     color: Colors.black, // Modern contrast
                     size: 32,

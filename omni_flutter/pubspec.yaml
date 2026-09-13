@@ -31,6 +31,9 @@ dependencies:
   
   # HTTP
   http: ^1.1.0
+
+  # In-app purchases (subscriptions + consumable Jade Coins)
+  in_app_purchase: ^3.1.13
   
   # Cyber-Taoist Stack
   flutter_riverpod: ^2.4.0

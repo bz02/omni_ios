@@ -95,7 +95,6 @@ class MemoryService {
   Future<Map<String, dynamic>> getUserContext() async {
     final profile = await getUserProfile();
     final conversations = await getConversationHistory();
-    final today = DateTime.now().toString().split(' ')[0];
     final todayVibe = await getTodayVibe();
     
     // Get recent topics from last 5 messages
