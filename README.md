@@ -1,128 +1,88 @@
-# Omni iOS App
+# Omni
 
-> **AI-Powered Energy Management Platform** 🔮  
-> Combining Pet Psychic Analysis, Daily Vibe Checks, and Eastern/Western Wisdom
+> **Two ancient systems. One you.**
+> The only app that computes your Western natal chart and your Chinese Ba Zi
+> from the same birth moment, and tells you where the two disagree.
 
-## 🎯 Project Overview
+## What it is
 
-Omni is an iOS application designed for the US market that creates a unique "Energy Management" experience by blending:
-- **Pet + Roast Culture**: Viral hooks through Pet Psychic readings and personality roasts
-- **Daily Engagement**: Morning energy scores, lucky outfit recommendations, and actionable advice
-- **AI Chat Engine**: Free daily consultations mixing Eastern mysticism with Western logic
+Most astrology apps ship one tradition. Omni computes both from a single
+ephemeris and reads them against each other — which is a kind of content no
+single-tradition app can produce.
 
-## 📱 MVP Features
+| | |
+|---|---|
+| **Today** | Energy score, the almanac's 宜/忌, lucky colour, number and direction — and the arithmetic behind the score, one tap away |
+| **Chart** | Sun / Moon / Rising alongside the four pillars, five-phase balance, and the cross-system readings |
+| **Oracle** | One question, three tarot cards and a cast hexagram, plus a verdict on whether the two oracles agree |
+| **Match** | Compatibility scored separately by each tradition |
+| **You** | Plan, Jade Coins, and how every number is worked out |
 
-### A. Onboarding (Energy DNA)
-- Collect user birthday + pet information (name, type, photo)
-- Generate personalized **Energy DNA** (e.g., "Solar Flare", "Void Walker")
-- Create pet's **Soul ID** with archetype and personality
+## Why the numbers are trustworthy
 
-### B. Viral Hooks
-- **Pet Psychic** 🔮: Upload pet photo → Get roast/reading
-- **The Roast** 🔥: Zodiac-based "Why You're Single" report
+The differentiator is that the readings are **computed, not generated**:
 
-### C. Daily Vibe Check
-- Energy Score (0-100%) with animated progress ring
-- OOTD (Outfit of the Day) color & style recommendations
-- One-liner actionable wisdom
+- The Sun comes from a truncated **VSOP87** series with nutation, aberration and
+  a Delta-T correction. Across eight published equinox, solstice and solar-term
+  times the worst error is **under forty seconds**. (The first cut used Meeus'
+  abbreviated series and missed by up to seven minutes.)
+- The same solar longitude that places a Western Sun sign locates the
+  twenty-four **solar terms**, so the Ba Zi year turns over at Start of Spring
+  and the month on a real solar term — not on 1 January and not on calendar
+  months. That is the thing toy implementations get wrong.
+- Day pillars come off the Julian Day Number, anchored on two independently
+  published dates.
+- The daily score is **derived**: every point traces to a named relationship
+  between the day's pillar and the user's chart, and the app shows the list.
+- Charts **degrade honestly**. No birthplace drops the ascendant, no birth time
+  drops the Moon and the hour pillar, and placements near a cusp are flagged
+  rather than asserted.
 
-### D. Omni-Chat (Lite)
-- Free 3 messages per day
-- AI responses blending Eastern wisdom + Western logic + Sass
-- Keyword-based smart replies
+`lib/core/engine/` is pure Dart with no Flutter dependency, and 84 tests check
+it against published reference times, Meeus' worked examples, and the physical
+identity that the Sun sits on the ascendant at sunrise.
 
-## 🏗️ Project Structure
+## Running it
+
+```bash
+cd omni_flutter
+flutter pub get
+flutter run                                        # works fully offline
+flutter run --dart-define=GEMINI_API_KEY=...       # adds the chat layer
+flutter test                                       # 121 tests
+```
+
+No key is required. Every reading is computed on the device; the model only
+turns a computed chart into prose.
+
+## Layout
 
 ```
-Omni/
-├── OmniApp.swift                    # App entry point
-├── Shared/
-│   ├── AppState.swift               # Global state management
-│   └── Models/
-│       └── EnergyProfile.swift      # Data models (User, Pet, DNA, Soul ID)
-├── Features/
-│   ├── Onboarding/
-│   │   └── OnboardingView.swift     # Birthday + Pet input form
-│   ├── Home/
-│   │   └── HomeView.swift           # TabView navigation + Profile cards
-│   ├── Retention/
-│   │   └── DailyVibeView.swift      # Daily energy score + OOTD + advice
-│   ├── Viral/
-│   │   └── ViralViews.swift         # Pet Psychic + The Roast
-│   └── Chat/
-│       └── ChatView.swift           # Chat interface with message limits
+omni_flutter/lib/
+├── core/engine/     pure Dart, no Flutter — the calculations
+│   ├── astro_math       Julian day, solar and lunar longitude, ascendant,
+│   │                    and a solver for solar-term instants
+│   ├── vsop87_earth     truncated VSOP87D series and Delta-T
+│   ├── western_chart    Sun, Moon, Ascendant, elements, aspects
+│   ├── bazi             four pillars, five phases, ten gods, na yin
+│   ├── iching           64 hexagrams and three-coin casting
+│   ├── tarot            the 78-card deck and four spreads
+│   ├── soul_blueprint   the East/West synthesis
+│   ├── daily_fortune    the derived daily score
+│   └── compatibility    both traditions, scored separately
+├── core/billing/    subscriptions, Jade Coins, and one gate for every feature
+├── features/        the screens
+└── state/           birth record and saved people
 ```
 
-## 🚀 Getting Started
+## Docs
 
-### Prerequisites
-- Xcode 14.0+
-- iOS 16.0+ deployment target
-- Swift 5.7+
+- [`docs/PRD.md`](docs/PRD.md) — positioning, competitors, feature scope,
+  pricing and the unit economics
+- [`docs/LAUNCH.md`](docs/LAUNCH.md) — what still needs your accounts and keys
+  before this can take money
 
-### Installation
+## Disclaimer
 
-1. **Create New Xcode Project**:
-   - Open Xcode
-   - File → New → Project
-   - Choose "App" template (iOS)
-   - Product Name: `Omni`
-   - Interface: SwiftUI
-   - Language: Swift
-
-2. **Add Source Files**:
-   - Drag the `Omni/` folder structure into your Xcode project
-   - Replace the auto-generated `OmniApp.swift` with our version
-   - Ensure all `.swift` files are added to the target
-
-3. **Configure Info.plist** (if using camera):
-   - Add `NSPhotoLibraryUsageDescription`
-   - Value: "Omni needs access to your photos to analyze your pet's energy"
-
-4. **Build & Run**:
-   ```bash
-   # Via Xcode: Cmd + R
-   # Or via command line (if using xcodeproj):
-   xcodebuild -project Omni.xcodeproj -scheme Omni -destination 'platform=iOS Simulator,name=iPhone 15 Pro'
-   ```
-
-## 🎨 Design Philosophy
-
-- **Vibrant Gradients**: Purple/Pink for mystical vibes, Orange/Red for roasts
-- **Animated Components**: Circular progress rings, smooth transitions
-- **Glassmorphism**: Semi-transparent cards with blurs
-- **Emoji-First**: Heavy use of emojis for personality (🔮🔥⚡️👗)
-
-## 🧪 Testing Flow
-
-1. Launch app → Onboarding appears
-2. Enter birthday, pet name, pet type
-3. Tap "Generate Energy DNA" → Navigate to Home
-4. **Daily Tab**: See energy score, OOTD, advice
-5. **Viral Tab**: Try Pet Psychic (upload photo) or The Roast (select zodiac)
-6. **Chat Tab**: Send 3 messages, verify 4th is blocked
-7. **Profile Tab**: View Energy DNA and Soul ID cards
-
-## 📝 Future Enhancements (Post-MVP)
-
-- Push notifications for Daily Vibe at 8 AM
-- Social sharing for viral content (UIActivityViewController)
-- Premium tier: Unlimited chat, advanced readings
-- Real AI integration (OpenAI API, Google Gemini)
-- User authentication & cloud sync
-
-## 🤝 Contributing
-
-This is an MVP built for validation. For production:
-- Implement proper persistence (UserDefaults → Core Data/CloudKit)
-- Add analytics (Firebase, Mixpanel)
-- Integrate real AI APIs
-- A/B test viral hooks for conversion
-
-## 📄 License
-
-Proprietary - Omni Energy Management Platform
-
----
-
-Built with ❤️ and ✨ for the AI Era
+For reflection and entertainment. Not medical, legal, financial or
+psychological advice.
