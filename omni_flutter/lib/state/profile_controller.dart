@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/engine/compatibility.dart';
 import '../core/engine/daily_fortune.dart';
+import '../core/engine/luck_pillars.dart';
 import '../core/engine/soul_blueprint.dart';
 
 class SavedPerson {
@@ -36,6 +37,7 @@ class ProfileController extends ChangeNotifier {
 
   static const _birthKey = 'omni.birth';
   static const _peopleKey = 'omni.people';
+  static const _polarityKey = 'omni.polarity';
 
   SharedPreferences? _prefs;
 
@@ -44,6 +46,8 @@ class ProfileController extends ChangeNotifier {
   DailyFortune? _todayCache;
   DateTime? _todayCacheDate;
   List<SavedPerson> _people = [];
+  ChartPolarity? _polarity;
+  LuckCycle? _cycleCache;
 
   BirthData? get birth => _birth;
   SoulBlueprint? get blueprint => _blueprint;
@@ -52,6 +56,53 @@ class ProfileController extends ChangeNotifier {
   /// Other people the user has saved for compatibility checks. Each one is a
   /// reason to come back, and each one started as an invitation.
   List<SavedPerson> get people => List.unmodifiable(_people);
+
+  /// Which polarity the luck cycle is read against. Null until asked, and it
+  /// is asked where it is used rather than during onboarding: one more
+  /// question on the first screen costs more installs than it is worth.
+  ChartPolarity? get polarity => _polarity;
+
+  /// The ten-year luck cycle, computed once. Null until a polarity is chosen,
+  /// because the direction of the cycle depends on it and guessing would give
+  /// half of all users the reversed sequence.
+  LuckCycle? get luckCycle {
+    final blueprint = _blueprint;
+    final polarity = _polarity;
+    if (blueprint == null || polarity == null) return null;
+    return _cycleCache ??= computeLuckCycle(
+      birth: blueprint.birth,
+      chart: blueprint.bazi,
+      polarity: polarity,
+    );
+  }
+
+  /// The cycle as it would run under the other polarity, for users who would
+  /// rather see both than answer the question.
+  LuckCycle? cycleFor(ChartPolarity polarity) {
+    final blueprint = _blueprint;
+    if (blueprint == null) return null;
+    return computeLuckCycle(
+      birth: blueprint.birth,
+      chart: blueprint.bazi,
+      polarity: polarity,
+    );
+  }
+
+  AnnualForecast? forecastFor(int year) {
+    final blueprint = _blueprint;
+    final cycle = luckCycle;
+    if (blueprint == null || cycle == null) return null;
+    return computeAnnualForecast(
+        blueprint: blueprint, cycle: cycle, year: year);
+  }
+
+  Future<void> setPolarity(ChartPolarity polarity) async {
+    _polarity = polarity;
+    _cycleCache = null;
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setString(_polarityKey, polarity.name);
+    notifyListeners();
+  }
 
   Future<void> load() async {
     _prefs ??= await SharedPreferences.getInstance();
@@ -63,6 +114,13 @@ class ProfileController extends ChangeNotifier {
         _blueprint = computeSoulBlueprint(_birth!);
       } on FormatException {
         _birth = null;
+      }
+    }
+
+    final storedPolarity = _prefs!.getString(_polarityKey);
+    if (storedPolarity != null) {
+      for (final value in ChartPolarity.values) {
+        if (value.name == storedPolarity) _polarity = value;
       }
     }
 
@@ -85,6 +143,7 @@ class ProfileController extends ChangeNotifier {
     _birth = birth;
     _blueprint = computeSoulBlueprint(birth);
     _todayCache = null;
+    _cycleCache = null;
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs!.setString(_birthKey, jsonEncode(birth.toJson()));
     notifyListeners();
@@ -140,10 +199,13 @@ class ProfileController extends ChangeNotifier {
     _birth = null;
     _blueprint = null;
     _todayCache = null;
+    _cycleCache = null;
+    _polarity = null;
     _people = [];
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs!.remove(_birthKey);
     await _prefs!.remove(_peopleKey);
+    await _prefs!.remove(_polarityKey);
     notifyListeners();
   }
 

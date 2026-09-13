@@ -14,6 +14,7 @@ single-tradition app can produce.
 |---|---|
 | **Today** | Energy score, the almanac's 宜/忌, lucky colour, number and direction — and the arithmetic behind the score, one tap away |
 | **Chart** | Sun / Moon / Rising alongside the four pillars, five-phase balance, and the cross-system readings |
+| **Timeline** | The ten-year luck pillars and the year-by-year forecast, with the starting age measured off a real solar term |
 | **Oracle** | One question, three tarot cards and a cast hexagram, plus a verdict on whether the two oracles agree |
 | **Match** | Compatibility scored separately by each tradition |
 | **You** | Plan, Jade Coins, and how every number is worked out |
@@ -49,7 +50,7 @@ cd omni_flutter
 flutter pub get
 flutter run                                        # works fully offline
 flutter run --dart-define=GEMINI_API_KEY=...       # adds the chat layer
-flutter test                                       # 143 tests
+flutter test                                       # 166 tests
 cd ../server && node --test                        # 31 more
 ```
 
@@ -83,6 +84,7 @@ omni_flutter/lib/
 │   ├── tarot            the 78-card deck and four spreads
 │   ├── soul_blueprint   the East/West synthesis
 │   ├── daily_fortune    the derived daily score
+│   ├── luck_pillars     the ten-year cycle and the annual forecast
 │   └── compatibility    both traditions, scored separately
 ├── core/billing/    subscriptions, Jade Coins, and one gate for every feature
 ├── core/net/        the backend client

@@ -10,7 +10,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_flutter/core/analytics/analytics.dart';
 import 'package:omni_flutter/core/billing/entitlements.dart';
+import 'package:omni_flutter/core/billing/products.dart';
 import 'package:omni_flutter/core/billing/purchase_service.dart';
+import 'package:omni_flutter/core/engine/luck_pillars.dart';
 import 'package:omni_flutter/core/engine/soul_blueprint.dart';
 import 'package:omni_flutter/features/paywall/paywall_screen.dart';
 import 'package:omni_flutter/main.dart';
@@ -92,10 +94,18 @@ void _usePhoneViewport(WidgetTester tester) {
   addTearDown(tester.view.reset);
 }
 
-/// Scrolls [target] into view within the nearest scrollable, then settles.
-Future<void> _reveal(WidgetTester tester, Finder target) async {
-  await tester.scrollUntilVisible(target, 200,
-      scrollable: find.byType(Scrollable).first);
+/// Scrolls [target] into view, then settles.
+///
+/// [inSheet] scrolls the modal sheet's own list rather than the page behind
+/// it, which is still mounted and would otherwise be scrolled instead.
+Future<void> _reveal(WidgetTester tester, Finder target,
+    {bool inSheet = false}) async {
+  await tester.scrollUntilVisible(
+    target,
+    200,
+    scrollable:
+        inSheet ? find.byType(Scrollable).last : find.byType(Scrollable).first,
+  );
   await tester.pumpAndSettle();
 }
 
@@ -298,6 +308,108 @@ void main() {
     expect(find.text('東 Chinese'), findsOneWidget);
     expect(find.text('西 Western'), findsOneWidget);
     expect(find.text('GREEN FLAG'), findsOneWidget);
+  });
+
+  group('timeline', () {
+    testWidgets('asks which way the cycle runs before showing it',
+        (tester) async {
+      _usePhoneViewport(tester);
+      final harness = await _harness(birth: _sampleBirth);
+      await tester.pumpWidget(harness.app);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Chart'));
+      await tester.pumpAndSettle();
+
+      final entry = find.text('Your decades 大运');
+      await _reveal(tester, entry);
+      await tester.tap(entry);
+      await tester.pumpAndSettle();
+
+      // Direction changes every decade of the reading, so it is asked rather
+      // than guessed.
+      expect(find.text('Which way does your cycle run?'), findsOneWidget);
+      expect(find.text('Yang'), findsOneWidget);
+      expect(find.text('Yin'), findsOneWidget);
+    });
+
+    testWidgets('shows the decades and this year once a polarity is chosen',
+        (tester) async {
+      _usePhoneViewport(tester);
+      final harness = await _harness(birth: _sampleBirth);
+      await harness.profile.setPolarity(ChartPolarity.yang);
+
+      await tester.pumpWidget(harness.app);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Chart'));
+      await tester.pumpAndSettle();
+
+      final entry = find.text('Your decades 大运');
+      await _reveal(tester, entry);
+      await tester.tap(entry);
+      await tester.pumpAndSettle();
+
+      expect(find.text('THE DECADES 大运'), findsOneWidget);
+      await _reveal(tester, find.text('YEAR BY YEAR 流年'));
+      expect(find.text('YEAR BY YEAR 流年'), findsOneWidget);
+
+      final cycle = harness.profile.luckCycle!;
+      // Every decade is listed, with the current one marked on the header.
+      expect(cycle.pillars, hasLength(9));
+    });
+
+    testWidgets('the years ahead are gated and open the paywall',
+        (tester) async {
+      _usePhoneViewport(tester);
+      final harness = await _harness(birth: _sampleBirth);
+      await harness.profile.setPolarity(ChartPolarity.yin);
+
+      await tester.pumpWidget(harness.app);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Chart'));
+      await tester.pumpAndSettle();
+
+      final entry = find.text('Your decades 大运');
+      await _reveal(tester, entry);
+      await tester.tap(entry);
+      await tester.pumpAndSettle();
+
+      final locked = find.text('The next nine years');
+      await _reveal(tester, locked);
+      await tester.tap(locked);
+      await tester.pumpAndSettle();
+
+      expect(find.text('OMNI PLUS'), findsOneWidget);
+      expect(harness.analytics.propertiesFor('paywall_shown')?['trigger'],
+          'yearAhead');
+      // Priced in coins as well, since it is a one-off report.
+      await _reveal(tester, find.textContaining('Jade Coins'), inSheet: true);
+      expect(find.textContaining('Jade Coins'), findsOneWidget);
+    });
+
+    testWidgets('a subscriber sees the years without a paywall',
+        (tester) async {
+      _usePhoneViewport(tester);
+      final harness = await _harness(birth: _sampleBirth);
+      await harness.profile.setPolarity(ChartPolarity.yang);
+      await harness.entitlements.syncFromStore(
+          tier: Tier.plus, expiresAt: DateTime.now().add(const Duration(days: 30)));
+
+      await tester.pumpWidget(harness.app);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Chart'));
+      await tester.pumpAndSettle();
+
+      final entry = find.text('Your decades 大运');
+      await _reveal(tester, entry);
+      await tester.tap(entry);
+      await tester.pumpAndSettle();
+
+      expect(find.text('The next nine years'), findsNothing);
+      final nextYear = DateTime.now().year + 1;
+      await _reveal(tester, find.textContaining('$nextYear ·'));
+      expect(find.textContaining('$nextYear ·'), findsOneWidget);
+    });
   });
 
   testWidgets('the account tab states the plan and the disclaimer',

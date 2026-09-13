@@ -22,7 +22,7 @@
 cd omni_flutter
 flutter pub get
 flutter run        # 不带任何 key：命盘、运势、塔罗、易经、合盘全部本地计算，离线可用
-flutter test       # 143 个测试
+flutter test       # 166 个测试
 
 cd ../server
 node --test        # 31 个测试，不连网
@@ -149,7 +149,7 @@ Privacy Nutrition Label（出生信息本地存储；接了服务端后如实勾
 | P1 | 分享卡（IG Story 竖版图） | 获客靠这个，成本最低 |
 | P1 | 邮箱 magic-link | 见下面的"已知限制" |
 | P1 | 推送（早 8 点运势、节气、水逆） | 留存靠这个 |
-| P1 | 流年大运 | 玉币的主力消费点，现在有价格没内容 |
+| P1 | 深度报告（deepDive，180 币） | 唯一还剩「有价格没内容」的 SKU |
 | P2 | 许愿墙 / 灵魂匹配 | 真社交需要账号体系和内容审核，是独立工程 |
 | P2 | 中文本地化 | 引擎数据已经是中英双语，UI 换文案即可 |
 

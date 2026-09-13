@@ -16,6 +16,7 @@ import '../../core/theme/modern_theme.dart';
 import '../../state/profile_controller.dart';
 import '../onboarding/birth_form_screen.dart';
 import '../paywall/paywall_screen.dart';
+import '../timeline/timeline_screen.dart';
 
 class BlueprintScreen extends StatelessWidget {
   const BlueprintScreen({super.key});
@@ -62,6 +63,8 @@ class BlueprintScreen extends StatelessWidget {
           _PillarsCard(blueprint: blueprint),
           const SizedBox(height: 16),
           _ElementBar(blueprint: blueprint),
+          const SizedBox(height: 16),
+          const _TimelineEntry(),
           const SizedBox(height: 24),
           Text('WHERE THE TWO MEET',
               style: ModernTheme.caption.copyWith(
@@ -392,6 +395,57 @@ class _ElementBar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The way into the ten-year cycle. Sits directly under the chart because
+/// that is where the question "so what happens next" arrives.
+class _TimelineEntry extends StatelessWidget {
+  const _TimelineEntry();
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const TimelineScreen()),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: ModernTheme.cardDecoration,
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: ModernTheme.gold.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text('運',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: ModernTheme.gold)),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Your decades 大运',
+                        style: ModernTheme.subHeader.copyWith(fontSize: 16)),
+                    Text(
+                      'Which ten-year period you are standing in, and what the '
+                      'years ahead do to it',
+                      style: ModernTheme.caption.copyWith(fontSize: 12.5),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: ModernTheme.textSub),
+            ],
+          ),
+        ),
+      );
 }
 
 class _CardTitle extends StatelessWidget {
