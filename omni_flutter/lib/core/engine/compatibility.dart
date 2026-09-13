@@ -105,7 +105,7 @@ CompatibilityResult computeCompatibility(SoulBlueprint a, SoulBlueprint b) {
         'other — the classic clash. Not fatal, but nothing here is automatic.';
   } else if (branchA == branchB) {
     branchPoints = 18;
-    branchVerdict = 'Same animal. You recognise each other instantly, '
+    branchVerdict = 'Same animal. You recognize each other instantly, '
         'including the parts you would rather not see.';
   } else {
     branchPoints = 15;

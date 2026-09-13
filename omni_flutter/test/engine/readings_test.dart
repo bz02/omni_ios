@@ -222,7 +222,7 @@ void main() {
           blueprint: blueprint, date: DateTime(2026, 3, 14, 23, 59));
       expect(a.score, b.score);
       expect(a.luckyColor, b.luckyColor);
-      expect(a.favourable, b.favourable);
+      expect(a.favorable, b.favorable);
     });
 
     test('differs between days', () {
@@ -254,8 +254,8 @@ void main() {
         );
         expect(fortune.score, inInclusiveRange(5, 99));
         expect(fortune.band, isNotEmpty);
-        expect(fortune.favourable, isNotEmpty);
-        expect(fortune.unfavourable, isNotEmpty);
+        expect(fortune.favorable, isNotEmpty);
+        expect(fortune.unfavorable, isNotEmpty);
       }
     });
 

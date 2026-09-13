@@ -97,7 +97,7 @@ async function createCheckout(request, env) {
     // Ties the payment to this install without an account.
     client_reference_id: installId,
     success_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${returnUrl}?checkout=cancelled`,
+    cancel_url: `${returnUrl}?checkout=canceled`,
     'metadata[installId]': installId,
     'metadata[productId]': body.productId,
   };

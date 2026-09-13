@@ -11,7 +11,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/billing/entitlements.dart';
+import '../../core/engine/planets.dart';
 import '../../core/engine/soul_blueprint.dart';
+import '../../core/widgets/glossary_link.dart';
 import '../../core/theme/modern_theme.dart';
 import '../../state/profile_controller.dart';
 import '../onboarding/birth_form_screen.dart';
@@ -59,6 +61,8 @@ class BlueprintScreen extends StatelessWidget {
           _SignatureCard(blueprint: blueprint),
           const SizedBox(height: 16),
           _WesternCard(blueprint: blueprint),
+          const SizedBox(height: 16),
+          _PlanetsCard(chart: blueprint.western),
           const SizedBox(height: 16),
           _PillarsCard(blueprint: blueprint),
           const SizedBox(height: 16),
@@ -163,6 +167,11 @@ class _WesternCard extends StatelessWidget {
                 label: 'Rising',
                 placement: chart.ascendant!.formatted,
                 note: 'what they meet first'),
+          if (chart.midheaven case final mc?)
+            _Placement(
+                label: 'Midheaven',
+                placement: mc.formatted,
+                note: 'career, reputation'),
           if (chart.sunMoonAspect case final aspect?) ...[
             const SizedBox(height: 12),
             Text(
@@ -170,6 +179,98 @@ class _WesternCard extends StatelessWidget {
               '${aspect.aspect.gist}, ${aspect.orb.toStringAsFixed(1)}° from '
               'exact.',
               style: ModernTheme.caption.copyWith(fontSize: 13),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Every planet, with its sign and house.
+///
+/// This is the screen an American reader compares against every other
+/// astrology app they have. Leaving it out and shipping only Sun, Moon and
+/// Rising would read as a toy.
+class _PlanetsCard extends StatelessWidget {
+  const _PlanetsCard({required this.chart});
+  final WesternChart chart;
+
+  @override
+  Widget build(BuildContext context) {
+    if (chart.planets.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      decoration: ModernTheme.cardDecoration,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _CardTitle(
+              title: 'Planets', tag: 'WEST', color: ModernTheme.primary),
+          const SizedBox(height: 6),
+          Text(
+            chart.cusps == null
+                ? 'Houses need a birth time and place, so only the signs are '
+                    'shown.'
+                : 'Houses use ${chart.houseSystem.label}. '
+                    '${chart.houseSystem.explanation}',
+            style: ModernTheme.caption.copyWith(fontSize: 12.5),
+          ),
+          const SizedBox(height: 16),
+          for (final planet in Planet.values)
+            if (chart.planets[planet] case final placement?)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 26,
+                      child: Text(planet.glyph,
+                          style: const TextStyle(fontSize: 17)),
+                    ),
+                    SizedBox(
+                      width: 62,
+                      child: Text(planet.label,
+                          style: ModernTheme.caption.copyWith(
+                              fontSize: 13, color: ModernTheme.textMain)),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(placement.formattedWithHouse,
+                              style: ModernTheme.subHeader.copyWith(
+                                  fontSize: 14,
+                                  color: placement.isRetrograde
+                                      ? ModernTheme.vermilion
+                                      : ModernTheme.textMain)),
+                          Text(
+                            placement.house == null
+                                ? planet.gist
+                                : '${planet.gist} — '
+                                    '${placement.houseMeaning.toLowerCase()}',
+                            style:
+                                ModernTheme.caption.copyWith(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          if (chart.natalRetrogrades.isNotEmpty) ...[
+            const Divider(color: ModernTheme.border),
+            const SizedBox(height: 8),
+            Text(
+              '℞ means the planet was moving backwards from Earth the day you '
+              'were born. '
+              '${chart.natalRetrogrades.map((p) => p.label).join(', ')} '
+              '${chart.natalRetrogrades.length == 1 ? 'was' : 'were'} '
+              'retrograde in your chart — read as turned inward rather than '
+              'broken.',
+              style: ModernTheme.caption.copyWith(fontSize: 12.5),
             ),
           ],
         ],
@@ -227,8 +328,15 @@ class _PillarsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _CardTitle(title: 'Four pillars 四柱', tag: 'EAST', color: ModernTheme.jade),
-          const SizedBox(height: 18),
+          const _CardTitle(
+            title: 'Four pillars 四柱',
+            tag: 'EAST',
+            color: ModernTheme.jade,
+            glossaryId: 'fourPillars',
+          ),
+          const SizedBox(height: 6),
+          const GlossaryGloss('fourPillars'),
+          const SizedBox(height: 16),
           Row(
             children: [
               for (var i = 0; i < 4; i++)
@@ -281,19 +389,34 @@ class _PillarsCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Day master ${bazi.dayMaster.chinese} '
-            '${bazi.dayMaster.pinyin} — ${bazi.dayMaster.element.english}, '
-            '${_strength(bazi.dayMasterStrength)}.',
-            style: ModernTheme.body.copyWith(fontSize: 14),
-          ),
+          const SizedBox(height: 18),
+          GlossaryLink('dayMaster',
+              label: 'Day master ${bazi.dayMaster.chinese} '
+                  '${bazi.dayMaster.pinyin}',
+              style: ModernTheme.subHeader.copyWith(fontSize: 15)),
           const SizedBox(height: 6),
           Text(
-            '${bazi.zodiacAnimal} year · ${bazi.year.naYin.chinese} '
-            '${bazi.year.naYin.english} · born in '
-            '${bazi.solarTerm.chinese} ${bazi.solarTerm.english}',
-            style: ModernTheme.caption.copyWith(fontSize: 13),
+            'This character stands for you. It is '
+            '${bazi.dayMaster.element.english}, and the rest of the chart '
+            'leaves it ${_strength(bazi.dayMasterStrength)}.',
+            style: ModernTheme.body.copyWith(fontSize: 14),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 14,
+            runSpacing: 6,
+            children: [
+              Text('${bazi.zodiacAnimal} year',
+                  style: ModernTheme.caption.copyWith(fontSize: 13)),
+              GlossaryLink('naYin',
+                  label: '${bazi.year.naYin.chinese} '
+                      '${bazi.year.naYin.english}',
+                  style: ModernTheme.caption.copyWith(fontSize: 13)),
+              GlossaryLink('solarTerm',
+                  label: 'born in ${bazi.solarTerm.chinese} '
+                      '${bazi.solarTerm.english}',
+                  style: ModernTheme.caption.copyWith(fontSize: 13)),
+            ],
           ),
         ],
       ),
@@ -301,9 +424,9 @@ class _PillarsCard extends StatelessWidget {
   }
 
   static String _strength(double s) {
-    if (s >= 0.62) return 'strong, well supported by the rest of the chart';
-    if (s <= 0.38) return 'weak, and the chart pulls against it';
-    return 'balanced against the rest of the chart';
+    if (s >= 0.62) return 'well supported';
+    if (s <= 0.38) return 'under pressure';
+    return 'balanced';
   }
 }
 
@@ -330,8 +453,14 @@ class _ElementBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _CardTitle(
-              title: 'Five phases 五行', tag: 'EAST', color: ModernTheme.jade),
-          const SizedBox(height: 16),
+            title: 'Five phases 五行',
+            tag: 'EAST',
+            color: ModernTheme.jade,
+            glossaryId: 'fivePhases',
+          ),
+          const SizedBox(height: 6),
+          const GlossaryGloss('fivePhases'),
+          const SizedBox(height: 14),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: SizedBox(
@@ -449,18 +578,32 @@ class _TimelineEntry extends StatelessWidget {
 }
 
 class _CardTitle extends StatelessWidget {
-  const _CardTitle(
-      {required this.title, required this.tag, required this.color});
+  const _CardTitle({
+    required this.title,
+    required this.tag,
+    required this.color,
+    this.glossaryId,
+  });
+
   final String title;
   final String tag;
   final Color color;
+
+  /// When set, the title is tappable and the term is explained. Every Eastern
+  /// heading sets this: the audience is American and arrives knowing Sun,
+  /// Moon and Rising, so an unglossed "四柱" is not mysterious, it is
+  /// unreadable.
+  final String? glossaryId;
 
   @override
   Widget build(BuildContext context) => Row(
         children: [
           Expanded(
-              child: Text(title,
-                  style: ModernTheme.subHeader.copyWith(fontSize: 17))),
+            child: glossaryId == null
+                ? Text(title,
+                    style: ModernTheme.subHeader.copyWith(fontSize: 17))
+                : GlossaryLink(glossaryId!, label: title),
+          ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
@@ -484,8 +627,8 @@ class _InsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The accent stripe is a child rather than a coloured left border:
-    // Flutter refuses to paint a rounded box whose sides differ in colour.
+    // The accent stripe is a child rather than a colored left border:
+    // Flutter refuses to paint a rounded box whose sides differ in color.
     final accent = insight.isTension ? ModernTheme.gold : ModernTheme.jade;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

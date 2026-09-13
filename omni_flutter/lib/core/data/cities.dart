@@ -6,7 +6,7 @@
 /// nothing per lookup, and there is no third party to send a birth record to.
 ///
 /// [standardUtcOffset] is the zone's *standard* offset. Summer time is not
-/// modelled: doing it correctly needs the historical tz database, and getting
+/// modeled: doing it correctly needs the historical tz database, and getting
 /// it silently wrong would shift an ascendant by a whole sign. The birth form
 /// shows the offset and lets the user change it, which is the honest way to
 /// handle a fact only they know.

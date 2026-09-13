@@ -317,11 +317,13 @@ const List<TarotCard> _majors = [
       reversed: ['temporary cloud', 'forced brightness']),
   TarotCard(
       id: 'major-20',
+      // The card's own title on the Rider-Waite-Smith deck, so it keeps the
+      // deck's spelling rather than being americanized into a different name.
       name: 'Judgement',
       arcana: Arcana.major,
       number: 20,
       upright: ['reckoning', 'a calling', 'seeing the whole of it'],
-      reversed: ['self-judgement', 'ignoring the call', 'stuck in review']),
+      reversed: ['self-judgment', 'ignoring the call', 'stuck in review']),
   TarotCard(
       id: 'major-21',
       name: 'The World',
@@ -339,7 +341,7 @@ const Map<Suit, List<List<List<String>>>> _minorMeanings = {
     [['expansion', 'waiting for what you sent out'], ['delays', 'too narrow a view']],
     [['celebration', 'homecoming', 'solid ground'], ['a transition', 'no home base']],
     [['friction', 'scrappy competition'], ['conflict avoided', 'tension held inside']],
-    [['recognition', 'a public win'], ['a fall from favour', 'a win nobody saw']],
+    [['recognition', 'a public win'], ['a fall from favor', 'a win nobody saw']],
     [['defending your ground'], ['overwhelmed', 'ground given up']],
     [['speed', 'news arriving', 'everything at once'], ['scattered energy', 'held up']],
     [['resilience', 'one more push', 'guarded'], ['exhaustion', 'paranoia']],
@@ -359,7 +361,7 @@ const Map<Suit, List<List<List<String>>>> _minorMeanings = {
     [['too many options', 'a lovely illusion'], ['clarity', 'finally choosing']],
     [['walking away to look for more'], ['drifting', 'afraid to leave']],
     [['contentment', 'the wish granted'], ['smugness', 'the wish that did not land']],
-    [['emotional fulfilment', 'harmony at home'], ['the picture cracked']],
+    [['emotional fulfillment', 'harmony at home'], ['the picture cracked']],
     [['a tender message', 'creative feeling'], ['emotional immaturity']],
     [['a romantic offer', 'following the heart'], ['moodiness', 'a fantasy']],
     [['empathy', 'emotional depth'], ['over-giving', 'drowning in it']],
@@ -378,7 +380,7 @@ const Map<Suit, List<List<List<String>>>> _minorMeanings = {
     [['rock bottom', 'a definite ending'], ['recovery beginning']],
     [['vigilance', 'news', 'curiosity'], ['gossip', 'scattered thinking']],
     [['fast and sharp', 'headlong'], ['aggression', 'no plan behind it']],
-    [['clear judgement', 'independence'], ['coldness', 'harshness']],
+    [['clear judgment', 'independence'], ['coldness', 'harshness']],
     [['intellectual authority', 'truth held firmly'], ['tyranny', 'logic misused']],
   ],
   Suit.pentacles: [

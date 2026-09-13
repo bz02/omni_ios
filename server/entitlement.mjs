@@ -77,7 +77,7 @@ export function mergeEntitlements(a, b) {
 
   // Carry the Stripe linkage through. Dropping it here meant a subscription
   // redeemed via the entitlement endpoint had no reverse index, so when it was
-  // later cancelled the webhook could not find the install to revoke — the
+  // later canceled the webhook could not find the install to revoke — the
   // subscription stayed unlocked forever.
   const linkage = {};
   for (const key of ['customerId', 'subscriptionId', 'lastSession', 'installId']) {

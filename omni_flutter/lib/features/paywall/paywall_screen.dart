@@ -161,7 +161,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
       Navigator.of(context).pop(true);
       return;
     }
-    if (result.outcome == PurchaseOutcome.cancelled) return;
+    if (result.outcome == PurchaseOutcome.canceled) return;
     if (result.outcome == PurchaseOutcome.pending) {
       // Stripe Checkout navigates away; the result lands on the way back in.
       setState(() => _error = result.message);
@@ -403,10 +403,10 @@ class _Footer extends StatelessWidget {
         : product.trialDays > 0
             ? '${product.trialDays} days free, then $price '
                 '${product.period!.inDays >= 365 ? 'a year' : 'a month'}. '
-                'Renews automatically until cancelled. Cancel any time in your '
+                'Renews automatically until canceled. Cancel any time in your '
                 'App Store settings.'
             : '$price ${product.period!.inDays >= 365 ? 'a year' : 'a month'}, '
-                'renewing automatically until cancelled.';
+                'renewing automatically until canceled.';
 
     return Container(
       padding: EdgeInsets.fromLTRB(

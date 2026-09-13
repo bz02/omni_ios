@@ -367,7 +367,7 @@ test('a valid session id redeems into a stored entitlement', async () => {
   assert.equal(stored.subscriptionId, 'sub_1');
 });
 
-test('a session Stripe does not recognise grants nothing', async () => {
+test('a session Stripe does not recognize grants nothing', async () => {
   stubFetch([
     ['/v1/checkout/sessions/', () => new StubResponse(404, { error: {} })],
   ]);
@@ -495,7 +495,7 @@ test('a webhook with no signature is refused', async () => {
   assert.equal(response.status, 400);
 });
 
-test('a cancelled subscription drops the install back to free', async () => {
+test('a canceled subscription drops the install back to free', async () => {
   stubFetch([]);
   const env = makeEnv();
   env.ENTITLEMENTS.store.set(

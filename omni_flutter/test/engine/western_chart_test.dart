@@ -85,7 +85,7 @@ void main() {
   });
 
   group('aspects', () {
-    test('recognises the five Ptolemaic aspects', () {
+    test('recognizes the five Ptolemaic aspects', () {
       expect(aspectBetween(10, 12)!.aspect, Aspect.conjunction);
       expect(aspectBetween(10, 70)!.aspect, Aspect.sextile);
       expect(aspectBetween(10, 100)!.aspect, Aspect.square);

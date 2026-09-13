@@ -140,7 +140,7 @@ class _OracleScreenState extends State<OracleScreen> {
       _tarot = drawTarot(spread: _spread, question: question);
       _iching = castHexagram(question: question);
     });
-    // Recorded only after the draw actually happened, so a cancelled or failed
+    // Recorded only after the draw actually happened, so a canceled or failed
     // attempt never burns a free use.
     await entitlements.recordUse(PremiumFeature.oracle);
     if (mounted) context.read<Analytics>().readingViewed('oracle');

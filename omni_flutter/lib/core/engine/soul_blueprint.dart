@@ -104,7 +104,7 @@ WuXing? wuXingForWesternElement(WesternElement element) => switch (element) {
       WesternElement.air => WuXing.wood,
     };
 
-/// What each phase points at for luck: colours, He Tu numbers, direction.
+/// What each phase points at for luck: colors, He Tu numbers, direction.
 class ElementAffinity {
   const ElementAffinity(this.colors, this.numbers, this.direction, this.season);
   final List<String> colors;
@@ -118,7 +118,7 @@ class ElementAffinity {
         WuXing.fire =>
           const ElementAffinity(['red', 'orange'], [2, 7], 'South', 'summer'),
         WuXing.earth => const ElementAffinity(
-            ['ochre', 'sand'], [5, 10], 'Centre', 'late summer'),
+            ['ochre', 'sand'], [5, 10], 'Center', 'late summer'),
         WuXing.metal =>
           const ElementAffinity(['white', 'gold'], [4, 9], 'West', 'autumn'),
         WuXing.water =>
@@ -142,7 +142,7 @@ class SoulBlueprint {
       '${western.sun.sign.label} Sun · ${bazi.dayMaster.element.english} '
       '${bazi.dayMaster.chinese} Day Master · ${bazi.zodiacAnimal}';
 
-  /// The element the chart is short of, which is what lucky colours, numbers
+  /// The element the chart is short of, which is what lucky colors, numbers
   /// and directions are chosen to supply.
   WuXing get remedialElement =>
       bazi.missingElements.isNotEmpty
@@ -234,7 +234,7 @@ class SoulBlueprint {
           '(${animal.animal}) and your Sun is in ${western.sun.sign.label}. The '
           'branch that clashes with yours is '
           '${animal.clashesWith.chinese} ${animal.clashesWith.animal}, and the '
-          'one that harmonises is ${animal.harmonizesWith.chinese} '
+          'one that harmonizes is ${animal.harmonizesWith.chinese} '
           '${animal.harmonizesWith.animal} — useful when you are working out '
           'why one colleague grates and another does not.',
       isTension: false,

@@ -110,7 +110,7 @@ class StripeCheckoutService extends PurchaseService {
   /// Called on startup with the `session_id` Stripe appended to the return URL.
   Future<PurchaseResult> completePendingCheckout(String sessionId) async {
     if (sessionId.isEmpty) {
-      return const PurchaseResult(PurchaseOutcome.cancelled);
+      return const PurchaseResult(PurchaseOutcome.canceled);
     }
 
     _busy = true;

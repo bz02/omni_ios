@@ -1,5 +1,5 @@
-/// The daily reading: energy score, what the day favours and what it does not,
-/// lucky colour, number and direction.
+/// The daily reading: energy score, what the day favors and what it does not,
+/// lucky color, number and direction.
 ///
 /// The score is derived, not rolled. Two properties matter commercially:
 ///
@@ -30,8 +30,8 @@ class DailyFortune {
     required this.score,
     required this.dayPillar,
     required this.factors,
-    required this.favourable,
-    required this.unfavourable,
+    required this.favorable,
+    required this.unfavorable,
     required this.luckyColor,
     required this.luckyNumber,
     required this.luckyDirection,
@@ -48,8 +48,8 @@ class DailyFortune {
   final List<FortuneFactor> factors;
 
   /// The almanac's yi and ji — what the day supports and what it resists.
-  final List<String> favourable;
-  final List<String> unfavourable;
+  final List<String> favorable;
+  final List<String> unfavorable;
 
   final String luckyColor;
   final int luckyNumber;
@@ -72,8 +72,8 @@ class DailyFortune {
         'band': band,
         'dayPillar': dayPillar.chinese,
         'headline': headline,
-        'favourable': favourable,
-        'unfavourable': unfavourable,
+        'favorable': favorable,
+        'unfavorable': unfavorable,
         'luckyColor': luckyColor,
         'luckyNumber': luckyNumber,
         'luckyDirection': luckyDirection,
@@ -121,7 +121,7 @@ const Map<TenGod, ({List<String> yes, List<String> no, String headline})>
   TenGod.directOfficer: (
     yes: ['interviews', 'reporting up', 'paperwork', 'anything official'],
     no: ['bending a rule', 'skipping the process'],
-    headline: 'Structure favours you. Play it straight and it pays.',
+    headline: 'Structure favors you. Play it straight and it pays.',
   ),
   TenGod.sevenKillings: (
     yes: ['hard decisions', 'confrontation you have prepared for', 'exercise'],
@@ -279,8 +279,8 @@ DailyFortune computeDailyFortune({
     score: clamped,
     dayPillar: dayPillar,
     factors: factors,
-    favourable: guidance.yes,
-    unfavourable: [
+    favorable: guidance.yes,
+    unfavorable: [
       ...guidance.no,
       if (branchPoints <= -15)
         'signing anything today — your branch is in clash',

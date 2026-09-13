@@ -325,7 +325,7 @@ class BaziChart {
       .key;
 
   /// Phase with the least weight — in practice the one a reading tells the user
-  /// to "feed", and the hook for lucky colours and directions.
+  /// to "feed", and the hook for lucky colors and directions.
   WuXing get weakestElement => elementWeights.entries
       .reduce((a, b) => a.value <= b.value ? a : b)
       .key;
@@ -507,7 +507,7 @@ Map<WuXing, double> _weighElements(List<Pillar> pillars) {
 ///
 /// This is the second half of the true-solar-time correction. It swings by
 /// roughly plus or minus a quarter of an hour across the year, which is enough
-/// to move a birth into the neighbouring two-hour branch.
+/// to move a birth into the neighboring two-hour branch.
 double equationOfTime(double jdUt) {
   final jde = jdeFromJdUt(jdUt);
   final tau = julianCenturies(jde) / 10.0;

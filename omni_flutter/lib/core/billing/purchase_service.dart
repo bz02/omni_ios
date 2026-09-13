@@ -29,7 +29,7 @@ class PricedProduct {
   final String displayPrice;
 }
 
-enum PurchaseOutcome { purchased, restored, cancelled, pending, failed }
+enum PurchaseOutcome { purchased, restored, canceled, pending, failed }
 
 class PurchaseResult {
   const PurchaseResult(this.outcome, {this.product, this.message});
@@ -125,7 +125,7 @@ class StorePurchaseService extends PurchaseService {
     if (response.notFoundIDs.isNotEmpty) {
       // Normal before the products are approved in App Store Connect, and a
       // configuration error afterwards. Worth logging either way.
-      debugPrint('Store did not recognise: ${response.notFoundIDs.join(', ')}');
+      debugPrint('Store did not recognize: ${response.notFoundIDs.join(', ')}');
     }
 
     _products
@@ -202,7 +202,7 @@ class StorePurchaseService extends PurchaseService {
               message: purchase.error?.message ?? 'The purchase failed.'));
 
         case PurchaseStatus.canceled:
-          _finish(const PurchaseResult(PurchaseOutcome.cancelled));
+          _finish(const PurchaseResult(PurchaseOutcome.canceled));
 
         case PurchaseStatus.purchased:
         case PurchaseStatus.restored:

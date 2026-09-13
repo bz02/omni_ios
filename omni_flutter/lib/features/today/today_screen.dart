@@ -10,7 +10,9 @@ import 'package:provider/provider.dart';
 
 import '../../core/analytics/analytics.dart';
 import '../../core/engine/daily_fortune.dart';
+import '../../core/engine/transits.dart';
 import '../../core/theme/modern_theme.dart';
+import '../../core/widgets/glossary_link.dart';
 import '../../state/profile_controller.dart';
 import '../onboarding/birth_form_screen.dart';
 
@@ -42,6 +44,10 @@ class TodayScreen extends StatelessWidget {
             Text('${_month(now.month)} ${now.day}',
                 style: ModernTheme.header.copyWith(fontSize: 30)),
             const SizedBox(height: 20),
+            if (profile.sky case final sky?) ...[
+              _SkyCard(sky: sky),
+              const SizedBox(height: 16),
+            ],
             _ScoreCard(fortune: fortune),
             const SizedBox(height: 16),
             _AlmanacCard(fortune: fortune),
@@ -56,14 +62,132 @@ class TodayScreen extends StatelessWidget {
   }
 
   static String _weekday(int w) => const [
-        'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
         'Sunday'
       ][w - 1];
 
   static String _month(int m) => const [
-        'January', 'February', 'March', 'April', 'May', 'June', 'July',
-        'August', 'September', 'October', 'November', 'December'
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December'
       ][m - 1];
+}
+
+/// The sky right now. First card on the screen because "is Mercury
+/// retrograde" and "what's the moon doing" are the two things this audience
+/// already checks, and meeting them where they are beats teaching them
+/// something new above the fold.
+class _SkyCard extends StatelessWidget {
+  const _SkyCard({required this.sky});
+  final SkyNow sky;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: ModernTheme.cardDecoration,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(sky.moon.phase.emoji,
+                    style: const TextStyle(fontSize: 28)),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(sky.headline,
+                          style:
+                              ModernTheme.subHeader.copyWith(fontSize: 17)),
+                      Text(
+                        '${sky.moon.phase.label} in ${sky.moon.sign.label} · '
+                        '${sky.moon.illuminationLabel}',
+                        style: ModernTheme.caption.copyWith(fontSize: 12.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(sky.moon.phase.gist,
+                style: ModernTheme.body.copyWith(fontSize: 14)),
+            if (sky.retrogrades.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final planet in sky.retrogrades)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: planet == Planet.mercury
+                            ? ModernTheme.vermilion.withOpacity(0.1)
+                            : ModernTheme.background,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: planet == Planet.mercury
+                              ? ModernTheme.vermilion
+                              : ModernTheme.border,
+                        ),
+                      ),
+                      child: Text(
+                        '${planet.glyph} ${planet.label} ℞',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: planet == Planet.mercury
+                              ? ModernTheme.vermilion
+                              : ModernTheme.textSub,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+            if (sky.supportingTransits.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              const Divider(color: ModernTheme.border),
+              const SizedBox(height: 10),
+              for (final transit in sky.supportingTransits.take(2))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(transit.headline,
+                          style: ModernTheme.caption.copyWith(
+                              fontSize: 13,
+                              color: ModernTheme.textMain,
+                              fontWeight: FontWeight.w600)),
+                      Text(transit.detail,
+                          style:
+                              ModernTheme.caption.copyWith(fontSize: 12.5)),
+                    ],
+                  ),
+                ),
+            ],
+          ],
+        ),
+      );
 }
 
 class _ScoreCard extends StatelessWidget {
@@ -158,29 +282,40 @@ class _AlmanacCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         decoration: ModernTheme.cardDecoration,
         padding: const EdgeInsets.all(20),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: _Column(
-                glyph: '宜',
-                label: 'Good for',
-                color: ModernTheme.jade,
-                items: fortune.favourable,
-              ),
-            ),
-            Container(
-                width: 1,
-                height: 110,
-                color: ModernTheme.border,
-                margin: const EdgeInsets.symmetric(horizontal: 16)),
-            Expanded(
-              child: _Column(
-                glyph: '忌',
-                label: 'Not today',
-                color: ModernTheme.vermilion,
-                items: fortune.unfavourable,
-              ),
+            // An American reader has never seen an almanac, so the two
+            // columns say what they are before showing their glyphs.
+            GlossaryLink('yiJi',
+                label: 'What today is for',
+                style: ModernTheme.subHeader.copyWith(fontSize: 15)),
+            const SizedBox(height: 14),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _Column(
+                    glyph: '宜',
+                    label: 'Good for',
+                    color: ModernTheme.jade,
+                    items: fortune.favorable,
+                  ),
+                ),
+                Container(
+                    width: 1,
+                    height: 110,
+                    color: ModernTheme.border,
+                    margin: const EdgeInsets.symmetric(horizontal: 16)),
+                Expanded(
+                  child: _Column(
+                    glyph: '忌',
+                    label: 'Not today',
+                    color: ModernTheme.vermilion,
+                    items: fortune.unfavorable,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -246,12 +381,13 @@ class _LuckyCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                // Each takes a third: 'deep blue' and 'Centre' are wide enough
+                // Each takes a third: 'deep blue' and 'Center' are wide enough
                 // to overflow a spaceAround row on a narrow phone.
-                Expanded(child: _Lucky(label: 'Colour', value: fortune.luckyColor)),
                 Expanded(
-                    child:
-                        _Lucky(label: 'Number', value: '${fortune.luckyNumber}')),
+                    child: _Lucky(label: 'Color', value: fortune.luckyColor)),
+                Expanded(
+                    child: _Lucky(
+                        label: 'Number', value: '${fortune.luckyNumber}')),
                 Expanded(
                     child: _Lucky(
                         label: 'Direction', value: fortune.luckyDirection)),

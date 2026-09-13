@@ -22,7 +22,7 @@ class ModernTheme {
   static const Color inkSoft = Color(0xFF1E1E2A);
 
   /// Score bands, shared by the daily energy ring and the compatibility dial so
-  /// a number means the same colour everywhere in the app.
+  /// a number means the same color everywhere in the app.
   static Color forScore(int score) {
     if (score >= 85) return jade;
     if (score >= 70) return const Color(0xFF3FA796);

@@ -1,19 +1,30 @@
 # Omni
 
-> **Two ancient systems. One you.**
-> The only app that computes your Western natal chart and your Chinese Ba Zi
-> from the same birth moment, and tells you where the two disagree.
+> **Astrology that shows its work.**
+> Every number in this app can be opened up and traced back to the
+> calculation that produced it.
 
 ## What it is
 
-Most astrology apps ship one tradition. Omni computes both from a single
-ephemeris and reads them against each other — which is a kind of content no
-single-tradition app can produce.
+A Western astrology app for a US audience — full natal chart, houses,
+transits, retrogrades — built around one thing none of the competition does:
+it never asks you to just believe it. Tap any score and you get the list of
+named factors that produced it, with the arithmetic.
+
+That is aimed at a real and badly served group: people who read their horoscope
+and also roll their eyes at it. Co-Star, The Pattern and Chani all require
+faith. This one offers a receipt.
+
+There is also a second, optional layer: the same birth moment read through
+Chinese four-pillars astrology, cross-referenced against the Western chart.
+It is a bonus rather than a prerequisite — every Eastern term in the app comes
+with a plain-English explanation attached, and none of it is needed to use the
+rest.
 
 | | |
 |---|---|
-| **Today** | Energy score, the almanac's 宜/忌, lucky colour, number and direction — and the arithmetic behind the score, one tap away |
-| **Chart** | Sun / Moon / Rising alongside the four pillars, five-phase balance, and the cross-system readings |
+| **Today** | What the sky is doing right now: moon phase, what is retrograde, live transits to your chart — then a daily score with the arithmetic behind it one tap away |
+| **Chart** | Sun, Moon, Rising, Midheaven, all eight planets with houses and natal retrogrades — then the Eastern second opinion underneath |
 | **Timeline** | The ten-year luck pillars and the year-by-year forecast, with the starting age measured off a real solar term |
 | **Oracle** | One question, three tarot cards and a cast hexagram, plus a verdict on whether the two oracles agree |
 | **Match** | Compatibility scored separately by each tradition |
@@ -27,6 +38,11 @@ The differentiator is that the readings are **computed, not generated**:
   a Delta-T correction. Across eight published equinox, solstice and solar-term
   times the worst error is **under forty seconds**. (The first cut used Meeus'
   abbreviated series and missed by up to seven minutes.)
+- The planets come from JPL's Keplerian elements, checked against physical
+  invariants rather than a table someone could have copied wrong: Mercury never
+  strays more than **27.7°** from the Sun against a true maximum of 28°, Venus
+  **47.2°** against 47.2°, and every planet's retrograde period matches the
+  published figure — Jupiter 120 days against 121, Saturn 138 against 138.
 - The same solar longitude that places a Western Sun sign locates the
   twenty-four **solar terms**, so the Ba Zi year turns over at Start of Spring
   and the month on a real solar term — not on 1 January and not on calendar
@@ -50,7 +66,7 @@ cd omni_flutter
 flutter pub get
 flutter run                                        # works fully offline
 flutter run --dart-define=GEMINI_API_KEY=...       # adds the chat layer
-flutter test                                       # 166 tests
+flutter test                                       # 213 tests
 cd ../server && node --test                        # 31 more
 ```
 
@@ -84,11 +100,15 @@ omni_flutter/lib/
 │   ├── tarot            the 78-card deck and four spreads
 │   ├── soul_blueprint   the East/West synthesis
 │   ├── daily_fortune    the derived daily score
+│   ├── planets          the eight planets, from JPL orbital elements
+│   ├── houses           Whole Sign and Equal, plus the Midheaven
+│   ├── transits         moon phases, retrogrades, transits, Saturn returns
 │   ├── luck_pillars     the ten-year cycle and the annual forecast
 │   └── compatibility    both traditions, scored separately
 ├── core/billing/    subscriptions, Jade Coins, and one gate for every feature
 ├── core/net/        the backend client
 ├── core/analytics/  the conversion funnel, provider-agnostic
+├── core/content/    plain-English glossary for every Eastern term
 ├── features/        the screens
 └── state/           birth record and saved people
 

@@ -145,7 +145,14 @@ void main() {
     await tester.pumpAndSettle();
 
     final fortune = harness.profile.today!;
+    // The sky card leads now — what the moon is doing and whether Mercury is
+    // retrograde is what this audience already checks daily.
+    expect(find.textContaining('lit'), findsOneWidget);
+
+    await _reveal(tester, find.text('${fortune.score}'));
     expect(find.text('${fortune.score}'), findsOneWidget);
+
+    await _reveal(tester, find.text('宜'));
     expect(find.text('宜'), findsOneWidget);
     expect(find.text('忌'), findsOneWidget);
 
@@ -154,6 +161,39 @@ void main() {
     await tester.tap(why);
     await tester.pumpAndSettle();
     expect(find.text('baseline'), findsOneWidget);
+  });
+
+  testWidgets('the chart tab lists every planet with sign and house',
+      (tester) async {
+    _usePhoneViewport(tester);
+    final harness = await _harness(birth: _sampleBirth);
+    await tester.pumpWidget(harness.app);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Chart'));
+    await tester.pumpAndSettle();
+
+    await _reveal(tester, find.text('Planets'));
+    expect(find.text('Planets'), findsOneWidget);
+    // The big six an American reader compares against every other app, plus
+    // the outer planets.
+    for (final planet in ['Mercury', 'Venus', 'Mars', 'Saturn', 'Pluto']) {
+      await _reveal(tester, find.text(planet));
+      expect(find.text(planet), findsOneWidget, reason: planet);
+    }
+  });
+
+  testWidgets('the daily screen leads with the sky, not the chart',
+      (tester) async {
+    _usePhoneViewport(tester);
+    final harness = await _harness(birth: _sampleBirth);
+    await tester.pumpWidget(harness.app);
+    await tester.pumpAndSettle();
+
+    final sky = harness.profile.sky!;
+    // Moon phase and illumination are above the fold without scrolling.
+    expect(find.text(sky.headline), findsOneWidget);
+    expect(find.textContaining(sky.moon.sign.label), findsWidgets);
   });
 
   testWidgets('the chart tab renders both traditions', (tester) async {

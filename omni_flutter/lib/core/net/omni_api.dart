@@ -82,7 +82,7 @@ class OmniApi {
   final String _baseUrl;
 
   /// False when no backend is configured, which is the default for a local
-  /// build. Callers fall back to on-device behaviour.
+  /// build. Callers fall back to on-device behavior.
   bool get isConfigured => _baseUrl.isNotEmpty;
 
   static const _timeout = Duration(seconds: 20);

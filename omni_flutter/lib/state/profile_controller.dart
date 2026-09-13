@@ -14,6 +14,7 @@ import '../core/engine/compatibility.dart';
 import '../core/engine/daily_fortune.dart';
 import '../core/engine/luck_pillars.dart';
 import '../core/engine/soul_blueprint.dart';
+import '../core/engine/transits.dart';
 
 class SavedPerson {
   const SavedPerson({required this.id, required this.name, required this.birth});
@@ -86,6 +87,33 @@ class ProfileController extends ChangeNotifier {
       chart: blueprint.bazi,
       polarity: polarity,
     );
+  }
+
+  /// What the sky is doing right now against this chart. Recomputed per call
+  /// rather than cached: the Moon moves half a degree an hour, and a stale
+  /// "full moon" is exactly the kind of wrong a user notices.
+  SkyNow? get sky {
+    final blueprint = _blueprint;
+    if (blueprint == null) return null;
+    return skyNow(
+      natal: blueprint.western,
+      at: DateTime.now(),
+      ageYears: ageYears ?? 30,
+    );
+  }
+
+  /// Age in whole years, or null before a birth record exists.
+  int? get ageYears {
+    final birth = _birth;
+    if (birth == null) return null;
+    final now = DateTime.now();
+    final born = birth.localDateTime;
+    var age = now.year - born.year;
+    if (now.month < born.month ||
+        (now.month == born.month && now.day < born.day)) {
+      age -= 1;
+    }
+    return age;
   }
 
   AnnualForecast? forecastFor(int year) {

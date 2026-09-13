@@ -308,7 +308,7 @@ const List<Hexagram> _hexagrams = [
   Hexagram(44, '姤', 'Coming to Meet',
       'Something small has entered. Harmless now, not harmless later.'),
   Hexagram(45, '萃', 'Gathering Together',
-      'People are converging. Give them a centre or it scatters.'),
+      'People are converging. Give them a center or it scatters.'),
   Hexagram(46, '升', 'Pushing Upward',
       'Steady ascent, step by step. No leaps available.'),
   Hexagram(47, '困', 'Oppression',

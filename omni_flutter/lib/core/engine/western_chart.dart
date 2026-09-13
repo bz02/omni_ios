@@ -8,6 +8,8 @@
 library;
 
 import 'astro_math.dart';
+import 'houses.dart';
+import 'planets.dart';
 
 enum WesternElement {
   fire('Fire', '🔥'),
@@ -62,10 +64,23 @@ enum ZodiacSign {
 
 /// A single placement: which sign, and how far into it.
 class Placement {
-  const Placement(this.longitude);
+  const Placement(this.longitude, {this.house, this.dailyMotion});
 
   /// Ecliptic longitude in degrees, 0 to 360.
   final double longitude;
+
+  /// 1 to 12, once houses have been computed. Null for a chart with no birth
+  /// time or place, where houses cannot be known.
+  final int? house;
+
+  /// Degrees per day. Negative means retrograde. Null for the angles, which
+  /// are not bodies and do not travel.
+  final double? dailyMotion;
+
+  bool get isRetrograde => (dailyMotion ?? 0) < 0;
+
+  String get houseMeaning =>
+      house == null ? '' : houseMeanings[house! - 1];
 
   ZodiacSign get sign => ZodiacSign.fromLongitude(longitude);
 
@@ -79,11 +94,15 @@ class Placement {
   }
 
   /// Within a degree of a boundary, so a slightly wrong birth time or the
-  /// engine's own lunar error could put this in the neighbouring sign.
+  /// engine's own lunar error could put this in the neighboring sign.
   bool get isOnCusp => degreesToCusp < 1.0;
 
   String get formatted =>
-      '${degreeInSign.floor()}° ${sign.label} ${sign.glyph}';
+      '${degreeInSign.floor()}° ${sign.label} ${sign.glyph}'
+      '${isRetrograde ? ' ℞' : ''}';
+
+  String get formattedWithHouse =>
+      house == null ? formatted : '$formatted · house $house';
 
   @override
   String toString() => formatted;
@@ -122,7 +141,27 @@ class WesternChart {
     required this.moon,
     required this.ascendant,
     required this.precision,
+    this.planets = const {},
+    this.midheaven,
+    this.cusps,
+    this.houseSystem = HouseSystem.wholeSign,
   });
+
+  /// Mercury through Pluto. Empty only if a caller asked for a bare chart.
+  ///
+  /// The audience talks about their Mercury and their Venus placements the way
+  /// they talk about their Sun sign, so these are not an advanced feature.
+  final Map<Planet, Placement> planets;
+
+  /// The degree culminating due south at birth — the tenth-house cusp, and the
+  /// point people mean by "career point". Null without a birth time or place.
+  final Placement? midheaven;
+
+  /// Twelve house cusps in ecliptic longitude. Null without a birth time or
+  /// place, because houses turn a full circle every day.
+  final List<double>? cusps;
+
+  final HouseSystem houseSystem;
 
   final Placement sun;
 
@@ -143,6 +182,24 @@ class WesternChart {
     if (ascendant != null) parts.add('${ascendant!.sign.label} Rising');
     return parts.join(' · ');
   }
+
+  /// The three placements plus the personal planets — the "big six" an
+  /// American reader expects to be told.
+  Map<String, Placement> get bigSix => {
+        'Sun': sun,
+        if (moon != null) 'Moon': moon!,
+        if (ascendant != null) 'Rising': ascendant!,
+        if (planets[Planet.mercury] case final p?) 'Mercury': p,
+        if (planets[Planet.venus] case final p?) 'Venus': p,
+        if (planets[Planet.mars] case final p?) 'Mars': p,
+      };
+
+  /// Planets travelling backwards at birth. A natal retrograde is a thing
+  /// people identify with, so it is surfaced rather than buried.
+  List<Planet> get natalRetrogrades => [
+        for (final entry in planets.entries)
+          if (entry.value.isRetrograde) entry.key,
+      ];
 
   /// Element balance across the placements that are actually known.
   Map<WesternElement, int> get elementBalance {
@@ -181,6 +238,15 @@ class WesternChart {
             ? null
             : '${sunMoonAspect!.aspect.label} '
                 '(${sunMoonAspect!.orb.toStringAsFixed(1)}°)',
+        'midheaven': midheaven?.formatted,
+        'planets': {
+          for (final entry in planets.entries)
+            entry.key.label: entry.value.formattedWithHouse,
+        },
+        'natalRetrogrades': [
+          for (final planet in natalRetrogrades) planet.label,
+        ],
+        'houseSystem': houseSystem.label,
         'precision': precision.name,
       };
 }
@@ -196,6 +262,7 @@ WesternChart computeWesternChart({
   double? latitudeNorth,
   double? longitudeEast,
   bool hourIsKnown = true,
+  HouseSystem houseSystem = HouseSystem.wholeSign,
 }) {
   // With no birth time, noon is the least-wrong assumption for the Sun: it caps
   // the error at half a day, which only matters within half a degree of a cusp.
@@ -219,16 +286,46 @@ WesternChart computeWesternChart({
       ? ChartPrecision.dateOnly
       : (hasPlace ? ChartPrecision.full : ChartPrecision.noBirthPlace);
 
+  final ascendant = hourIsKnown && hasPlace
+      ? ascendantLongitude(
+          jd: jd,
+          latitudeNorth: latitudeNorth,
+          longitudeEast: longitudeEast,
+        )
+      : null;
+
+  // Houses turn a full circle every day, so they need both a time and a place.
+  final cusps = ascendant == null
+      ? null
+      : houseCusps(ascendantLongitude: ascendant, system: houseSystem);
+
+  int? houseFor(double longitude) =>
+      cusps == null ? null : houseOf(longitude, cusps);
+
+  final moonLongitude = hourIsKnown ? lunarLongitude(jd) : null;
+  final mcLongitude = ascendant == null || !hasPlace
+      ? null
+      : midheavenLongitude(jd: jd, longitudeEast: longitudeEast);
+
   return WesternChart(
-    sun: sun,
-    moon: hourIsKnown ? Placement(lunarLongitude(jd)) : null,
-    ascendant: hourIsKnown && hasPlace
-        ? Placement(ascendantLongitude(
-            jd: jd,
-            latitudeNorth: latitudeNorth,
-            longitudeEast: longitudeEast,
-          ))
-        : null,
+    sun: Placement(sun.longitude, house: houseFor(sun.longitude)),
+    moon: moonLongitude == null
+        ? null
+        : Placement(moonLongitude, house: houseFor(moonLongitude)),
+    ascendant: ascendant == null ? null : Placement(ascendant, house: 1),
+    midheaven: mcLongitude == null
+        ? null
+        : Placement(mcLongitude, house: houseFor(mcLongitude)),
+    cusps: cusps,
+    houseSystem: houseSystem,
+    planets: {
+      for (final entry in allPlanetPositions(jd).entries)
+        entry.key: Placement(
+          entry.value.longitude,
+          house: houseFor(entry.value.longitude),
+          dailyMotion: entry.value.dailyMotion,
+        ),
+    },
     precision: precision,
   );
 }
