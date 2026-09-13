@@ -123,17 +123,13 @@ Stripe Checkout 的分支。这是目前唯一还没写的收款通路，但抽�
 
 ---
 
-## 5.5 打开 GitHub Actions（一分钟的事）
+## 5.5 CI
 
-`.github/workflows/ci.yaml` 已经加好了（`flutter analyze` + `flutter test`，
-Flutter 版本锁 3.24.5），但**这个仓库的 Actions 是关闭的**——文件推上去之后
-GitHub 一次运行都没创建。
+`.github/workflows/ci.yaml` 会在每个 PR 上跑 `flutter analyze` + `flutter test`
+（Flutter 锁 3.24.5），已经在 PR #1 上跑通。
 
-打开方式：仓库 → Settings → Actions → General → 选 **Allow all actions and
-reusable workflows** → Save。
-
-值得花这一分钟：引擎测试是拿真实节气和分至点时刻做基准的。一旦这部分回归，
-App 不会崩，只会**悄悄给用户算错星座和月柱**——这种 bug 靠手测发现不了。
+值得留着：引擎测试是拿真实节气和分至点时刻做基准的。这部分一旦回归，
+App 不会崩，只会**悄悄给用户算错星座和月柱**——手测发现不了这种 bug。
 
 ---
 
