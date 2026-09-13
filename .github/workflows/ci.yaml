@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  flutter:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: omni_flutter
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter analyze
+
+      # The engine tests are the ones that matter: they check the ephemeris
+      # against published equinox, solstice and solar-term times, so a
+      # regression here means the app is quietly telling people the wrong
+      # sign.
+      - run: flutter test

@@ -1,9 +1,10 @@
-/// Smoke tests for the shell.
-///
-/// These exist mostly to compile everything reachable from `main.dart` — a
-/// broken widget tree is otherwise only discovered on a device — and to hold
-/// the two flows that carry the money: onboarding through to a chart, and a
-/// blocked feature through to the paywall.
+// Smoke tests for the shell.
+//
+// These exist mostly to compile everything reachable from `main.dart` — a
+// broken widget tree is otherwise only discovered on a device — and to hold
+// the two flows that carry the money: onboarding through to a chart, and a
+// blocked feature through to the paywall.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
