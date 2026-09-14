@@ -19,6 +19,7 @@ import '../../state/profile_controller.dart';
 import '../onboarding/birth_form_screen.dart';
 import '../paywall/paywall_screen.dart';
 import '../timeline/timeline_screen.dart';
+import '../wheel/chart_wheel.dart';
 
 class BlueprintScreen extends StatelessWidget {
   const BlueprintScreen({super.key});
@@ -59,6 +60,8 @@ class BlueprintScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
           _SignatureCard(blueprint: blueprint),
+          const SizedBox(height: 16),
+          _WheelCard(chart: blueprint.western),
           const SizedBox(height: 16),
           _WesternCard(blueprint: blueprint),
           const SizedBox(height: 16),
@@ -137,6 +140,60 @@ class _SignatureCard extends StatelessWidget {
                 style: ModernTheme.header
                     .copyWith(color: Colors.white, fontSize: 22, height: 1.35)),
           ],
+        ),
+      );
+}
+
+/// The wheel, above the placement list it summarizes.
+///
+/// It sits this high on the screen because it is the thing a user screenshots,
+/// and because seeing the shape of their own chart is what makes the list
+/// below it worth reading rather than a wall of degrees.
+class _WheelCard extends StatelessWidget {
+  const _WheelCard({required this.chart});
+  final WesternChart chart;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => WheelScreen(chart: chart)),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: ModernTheme.ink,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      chart.bigThree,
+                      style: ModernTheme.subHeader
+                          .copyWith(fontSize: 15, color: Colors.white),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.open_in_full_rounded,
+                      size: 16, color: Colors.white.withOpacity(0.5)),
+                ],
+              ),
+              const SizedBox(height: 14),
+              ChartWheel(chart: chart),
+              const SizedBox(height: 10),
+              Text(
+                chart.cusps == null
+                    ? 'Tap to open · add a birth time for houses'
+                    : 'Tap to open · ${chart.houseSystem.label} houses',
+                style: ModernTheme.caption.copyWith(
+                    fontSize: 12, color: Colors.white.withOpacity(0.5)),
+              ),
+            ],
+          ),
         ),
       );
 }
