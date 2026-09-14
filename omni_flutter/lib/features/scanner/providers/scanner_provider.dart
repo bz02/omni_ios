@@ -28,7 +28,7 @@ class ScannerController extends _$ScannerController {
   Future<void> analyzePet(Uint8List imageBytes) async {
     state = null; // Reset state
 
-    final prompt = '''
+    const prompt = '''
 You are an ancient Taoist Mystic analyzing a divine beast.
 
 Examine this creature and determine:
@@ -60,7 +60,7 @@ Return ONLY valid JSON in this exact format:
       state = PetAnalysis.fromJson(json);
     } catch (e) {
       // Fallback result on error
-      state = PetAnalysis(
+      state = const PetAnalysis(
         archetype: 'The Unknowable',
         element: ChineseElement.water,
         powerLevel: 42,

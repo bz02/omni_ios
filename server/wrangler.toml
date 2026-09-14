@@ -1,0 +1,32 @@
+name = "omni-api"
+main = "worker.mjs"
+compatibility_date = "2024-09-23"
+
+# The web build's origin. Also the only place checkout is allowed to redirect
+# back to, so an attacker cannot turn a Stripe return into an open redirect.
+[vars]
+ALLOWED_ORIGIN = "https://omni.example"
+
+# Stripe price ids. Test-mode ids here; `wrangler deploy --env production`
+# with the live ones. The client never sees or sends a price.
+STRIPE_PRICE_MONTHLY = "price_replace_me"
+STRIPE_PRICE_ANNUAL = "price_replace_me"
+STRIPE_PRICE_LIFETIME = "price_replace_me"
+STRIPE_PRICE_COINS_60 = "price_replace_me"
+STRIPE_PRICE_COINS_180 = "price_replace_me"
+STRIPE_PRICE_COINS_400 = "price_replace_me"
+
+# install id -> entitlement, and subscription id -> install id.
+[[kv_namespaces]]
+binding = "ENTITLEMENTS"
+id = "replace_with_kv_id"
+
+# Per-install daily request counters. Short TTLs; losing one is harmless.
+[[kv_namespaces]]
+binding = "RATE"
+id = "replace_with_kv_id"
+
+# Secrets are never in this file. Set them with:
+#   wrangler secret put STRIPE_SECRET_KEY
+#   wrangler secret put STRIPE_WEBHOOK_SECRET
+#   wrangler secret put GEMINI_API_KEY

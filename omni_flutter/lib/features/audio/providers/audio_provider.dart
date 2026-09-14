@@ -45,7 +45,7 @@ class AmplitudeStream extends _$AmplitudeStream {
       const Duration(milliseconds: 100),
       (count) {
         // Create varying amplitude between -50 and 0 dB
-        final base = -25.0;
+        const base = -25.0;
         final variation = 20.0 * (count % 10 - 5) / 5;
         return base + variation;
       },

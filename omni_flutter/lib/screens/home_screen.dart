@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../services/gemini_service.dart';
-import '../services/user_service.dart';
 import '../core/theme/modern_theme.dart';
 
 class HomeScreen extends StatefulWidget {

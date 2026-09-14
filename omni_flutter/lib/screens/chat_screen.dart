@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../models/chat_models.dart';
-import '../services/gemini_service.dart';  
-import '../config/app_config.dart';
-import '../providers/app_state.dart';
+import '../core/billing/entitlements.dart';
 import '../core/theme/modern_theme.dart';
+import '../config/app_config.dart';
+import '../features/paywall/paywall_screen.dart';
+import '../models/chat_models.dart';
+import '../services/gemini_service.dart';
+import '../state/profile_controller.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -18,10 +19,9 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<ChatMessage> _messages = [];
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  int _remainingMessages = 3;
   late final GeminiService _geminiService;
   bool _isLoading = false;
-  ChatMode _selectedMode = ChatMode.cosmicGuide;
+  final ChatMode _selectedMode = ChatMode.cosmicGuide;
 
   @override
   void initState() {
@@ -40,31 +40,57 @@ class _ChatScreenState extends State<ChatScreen> {
   void _addWelcomeMessage() {
     setState(() {
       _messages.add(ChatMessage(
-        content:
-            'Hello! I\'m your AI guide. How can I help you regarding your pet or spirit journey today?',
+        content: AppConfig.hasModelAccess
+            ? 'I have your chart in front of me — both of them. Ask me '
+                'anything about it.'
+            : 'Readings are computed on your phone and work offline. The '
+                'conversational layer needs a model key, which this build does '
+                'not have.',
         isUser: false,
       ));
     });
   }
 
-  void _sendMessage() async {
-    if (_controller.text.isEmpty || _remainingMessages == 0) return;
+  Future<void> _sendMessage() async {
+    if (_controller.text.isEmpty || _isLoading) return;
+
+    // The quota lives in EntitlementsController, not in a field on this
+    // widget: a counter held in widget state resets on every app launch, which
+    // makes the free tier unlimited in practice.
+    final entitlements = context.read<EntitlementsController>();
+    final decision = entitlements.check(PremiumFeature.chat);
+    if (decision is AccessNeedsUpgrade) {
+      await PaywallScreen.show(context, trigger: PremiumFeature.chat);
+      return;
+    }
+
+    if (!AppConfig.hasModelAccess) {
+      setState(() {
+        _messages.add(ChatMessage(
+          content: 'This build has no model key, so I cannot answer in words. '
+              'Your charts, daily reading and oracle all still work — they are '
+              'computed on the device.',
+          isUser: false,
+        ));
+      });
+      return;
+    }
 
     final userText = _controller.text;
     setState(() {
       _messages.add(ChatMessage(content: userText, isUser: true));
-      _remainingMessages--;
       _isLoading = true;
     });
 
     _controller.clear();
     _scrollToBottom();
 
-    final appState = context.read<AppState>();
-    final userContext = {
-      'energyDNA': appState.currentUser?.energyDNA?.type ?? 'Unknown',
-      'petName': appState.currentUser?.petName ?? 'None',
-      'petType': appState.currentUser?.petType ?? 'Unknown',
+    // Ground the model in the computed charts rather than a vague persona.
+    // This is the difference between a horoscope generator and a reading.
+    final blueprint = context.read<ProfileController>().blueprint;
+    final userContext = <String, dynamic>{
+      if (blueprint != null) ...blueprint.promptContext(),
+      'energyDNA': blueprint?.signature ?? 'unknown',
       'recentTopics': _getRecentTopics(),
     };
 
@@ -75,17 +101,19 @@ class _ChatScreenState extends State<ChatScreen> {
         mode: _selectedMode,
       );
 
+      if (!mounted) return;
       setState(() {
-        _messages.add(ChatMessage(
-          content: response,
-          isUser: false,
-        ));
+        _messages.add(ChatMessage(content: response, isUser: false));
         _isLoading = false;
       });
+      // Charged only once an answer actually arrived.
+      await entitlements.recordUse(PremiumFeature.chat);
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _messages.add(ChatMessage(
-          content: 'I\'m having trouble connecting right now. Please try again.',
+          content: 'I am having trouble connecting right now. '
+              'That one is on us, so it has not used up a free reading.',
           isUser: false,
         ));
         _isLoading = false;
@@ -125,7 +153,7 @@ class _ChatScreenState extends State<ChatScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.delete_outline, color: ModernTheme.textMain),
+            icon: const Icon(Icons.delete_outline, color: ModernTheme.textMain),
             onPressed: () {
               setState(() {
                 _messages.clear();
@@ -157,7 +185,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             color: ModernTheme.secondary.withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
-                          child: Center(child: SizedBox(
+                          child: const Center(child: SizedBox(
                             width: 16, 
                             height: 16, 
                             child: CircularProgressIndicator(strokeWidth: 2, color: ModernTheme.secondary)
@@ -177,7 +205,7 @@ class _ChatScreenState extends State<ChatScreen> {
           // Input bar
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               border: Border(top: BorderSide(color: ModernTheme.border)),
             ),
@@ -212,7 +240,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _controller.text.isEmpty || _remainingMessages == 0
+                        color: _controller.text.isEmpty || _isLoading
                             ? ModernTheme.textSub.withOpacity(0.3)
                             : ModernTheme.primary,
                         shape: BoxShape.circle,
@@ -229,16 +257,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  IconData _getModeIcon(ChatMode mode) {
-    switch (mode) {
-      case ChatMode.cosmicGuide:
-        return Icons.auto_awesome;
-      case ChatMode.truthSpeaker:
-        return Icons.bolt;
-      case ChatMode.soulSister:
-        return Icons.favorite;
-    }
-  }
 }
 
 class _MessageBubble extends StatelessWidget {
@@ -265,7 +283,7 @@ class _MessageBubble extends StatelessWidget {
                 color: ModernTheme.secondary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.auto_awesome, color: ModernTheme.secondary, size: 16),
+              child: const Icon(Icons.auto_awesome, color: ModernTheme.secondary, size: 16),
             ),
             const SizedBox(width: 12),
           ],
@@ -302,7 +320,4 @@ class _MessageBubble extends StatelessWidget {
     );
   }
 
-  String _formatTime(DateTime time) {
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-  }
 }

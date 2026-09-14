@@ -6,7 +6,6 @@ import '../core/models/ba_gua.dart';
 /// Fortune telling service using Wu Xing and Ba Gua
 class FortuneService extends ChangeNotifier {
   final GenerativeModel _model;
-  final GenerativeModel _imageModel;
   
   FortuneService({required String apiKey}) 
       : _model = GenerativeModel(
@@ -16,10 +15,6 @@ class FortuneService extends ChangeNotifier {
             temperature: 0.9,
             maxOutputTokens: 1000,
           ),
-        ),
-        _imageModel = GenerativeModel(
-          model: 'gemini-2.0-flash-exp',
-          apiKey: apiKey,
         );
   
   /// Generate personalized fortune reading

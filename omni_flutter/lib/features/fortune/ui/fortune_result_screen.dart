@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import '../../../core/theme/mystical_colors.dart';
 import '../../../core/models/element.dart';
 import '../../../core/models/ba_gua.dart';

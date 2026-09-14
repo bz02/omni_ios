@@ -31,6 +31,15 @@ dependencies:
   
   # HTTP
   http: ^1.1.0
+
+  # In-app purchases (subscriptions + consumable Jade Coins) on iOS/Android
+  in_app_purchase: ^3.1.13
+
+  # Opening Stripe Checkout on the web build
+  url_launcher: ^6.2.4
+
+  # The share sheet for compatibility cards — the growth loop
+  share_plus: ^10.0.2
   
   # Cyber-Taoist Stack
   flutter_riverpod: ^2.4.0
